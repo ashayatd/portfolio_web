@@ -391,7 +391,7 @@ export default function MiniCityScene() {
           position: [0, 55, 55],
           fov: 50,
         }}
-        style={{ touchAction: "none" }}
+        // style={{ touchAction: "none" }}
       >
         <CityScene />
         <SceneControls

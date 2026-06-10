@@ -7,28 +7,12 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { CAMERA_POINTS, getCameraSample, type CameraSample } from "./Timeline";
 
-// ============================================================
-// SceneControls — Scroll-Driven Cinematic Camera
-// ============================================================
-// PAIR WITH: ScrollController.ts (handles wheel → progress mapping)
-//
-// SPEED IS CONTROLLED BY ScrollController, NOT this file.
-// This file just reads progressRef and smoothly interpolates camera.
-//
-// LERP TUNING (how fast camera catches up to path):
-//   • positionLerp: 0.08 = heavy/cinematic, 0.15 = responsive
-//   • targetLerp:   should match positionLerp for consistency
-//   • returnLerp:   0.06 = slow return after orbit, 0.12 = fast
-// ============================================================
-
 interface SceneControlsProps {
   progressRef: RefObject<number>;
   isDraggingRef: RefObject<boolean>;
   isManualRef: RefObject<boolean>;
   sampleRef?: RefObject<CameraSample | null>;
-  /** How fast camera catches up to path position (default: 0.12) */
   positionLerp?: number;
-  /** How fast look target catches up (default: 0.12) */
   targetLerp?: number;
 }
 
@@ -45,7 +29,6 @@ export function SceneControls({
   const targetRef = useRef(new THREE.Vector3());
   const goalPosRef = useRef(new THREE.Vector3());
   const goalTgtRef = useRef(new THREE.Vector3());
-  const wasManualRef = useRef(false);
 
   // ── Pointer Events ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -55,13 +38,11 @@ export function SceneControls({
       if (e.button !== 0) return;
       isManualRef.current = true;
       isDraggingRef.current = true;
-      if (controlsRef.current) {
-        controlsRef.current.enabled = true;
-      }
     };
 
     const onPointerUp = () => {
       isDraggingRef.current = false;
+      // Keep manual mode active so orbit stays free
     };
 
     el.addEventListener("pointerdown", onPointerDown, { capture: true });
@@ -80,44 +61,32 @@ export function SceneControls({
     const controls = controlsRef.current;
     if (!controls) return;
 
-    if (isManualRef.current) {
-      wasManualRef.current = true;
-      controls.enabled = true;
+    const progress = progressRef.current ?? 0;
+    const sample = getCameraSample(CAMERA_POINTS, progress);
+    if (sampleRef) sampleRef.current = sample;
 
-      // Still update goals so we can resume smoothly
-      const progress = progressRef.current ?? 0;
-      const sample = getCameraSample(CAMERA_POINTS, progress);
+    if (isManualRef.current) {
+      // ORBIT MODE: let user control camera freely
+      controls.enabled = true;
+      controls.update(); // REQUIRED for damping to work
+
+      // Keep goals synced so we can resume path smoothly later
       goalPosRef.current.set(...sample.position);
       goalTgtRef.current.set(...sample.target);
-      if (sampleRef) sampleRef.current = sample;
-
       return;
     }
 
-    if (wasManualRef.current) {
-      wasManualRef.current = false;
-    }
-
+    // CINEMATIC MODE: scroll-driven path
     controls.enabled = false;
-
-    const progress = progressRef.current ?? 0;
-    const sample = getCameraSample(CAMERA_POINTS, progress);
-
-    if (sampleRef) {
-      sampleRef.current = sample;
-    }
 
     goalPosRef.current.set(...sample.position);
     goalTgtRef.current.set(...sample.target);
 
-    // Smooth interpolation toward path
     camera.position.lerp(goalPosRef.current, positionLerp);
     targetRef.current.lerp(goalTgtRef.current, targetLerp);
     camera.lookAt(targetRef.current);
-
     controls.target.copy(targetRef.current);
 
-    // FOV transitions
     if (sample.fov && camera instanceof THREE.PerspectiveCamera) {
       camera.fov = THREE.MathUtils.lerp(camera.fov, sample.fov, 0.05);
       camera.updateProjectionMatrix();
@@ -127,8 +96,9 @@ export function SceneControls({
   return (
     <OrbitControls
       ref={controlsRef}
-      enableZoom={false}
-      enableDamping={false}
+      enableZoom={true}
+      enableDamping={true}
+      dampingFactor={0.05}
       enablePan={true}
       enableRotate={true}
       minDistance={5}
