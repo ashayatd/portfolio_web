@@ -741,8 +741,8 @@ export default function ArchitectureBlock() {
         .react-flow__edge-path {
           stroke-dasharray: 6 4;
           animation: flowDash 1.5s linear infinite;
-          stroke-linecap: round;
-          stroke-linejoin: round;
+          strokeLinecap: round;
+          strokeLinejoin: round;
         }
         @keyframes flowDash {
           0% { stroke-dashoffset: 24; }

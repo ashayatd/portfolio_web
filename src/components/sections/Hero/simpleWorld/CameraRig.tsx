@@ -1,113 +1,96 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useRef, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
-import { CAMERA_POINTS, getCameraSample, type CameraSample } from "./Timeline";
 
 interface SceneControlsProps {
-  progressRef: RefObject<number>;
-  isDraggingRef: RefObject<boolean>;
-  isManualRef: RefObject<boolean>;
-  sampleRef?: RefObject<CameraSample | null>;
-  positionLerp?: number;
-  targetLerp?: number;
+  progressRef?: React.MutableRefObject<number>;
 }
 
-export function SceneControls({
-  progressRef,
-  isDraggingRef,
-  isManualRef,
-  sampleRef,
-  positionLerp = 0.12,
-  targetLerp = 0.12,
-}: SceneControlsProps) {
-  const { camera, gl } = useThree();
+const FAR = new THREE.Vector3(100, 100, 100);
+const CLOSE = new THREE.Vector3(25, 30, 25);
+
+export function SceneControls({ progressRef }: SceneControlsProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
-  const targetRef = useRef(new THREE.Vector3());
-  const goalPosRef = useRef(new THREE.Vector3());
-  const goalTgtRef = useRef(new THREE.Vector3());
+  const { camera } = useThree();
 
-  // ── Pointer Events ─────────────────────────────────────────────────────
+  const currentPos = useRef(FAR.clone());
+  const targetPos = useRef(FAR.clone());
+
   useEffect(() => {
-    const el = gl.domElement;
-
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.button !== 0) return;
-      isManualRef.current = true;
-      isDraggingRef.current = true;
-    };
-
-    const onPointerUp = () => {
-      isDraggingRef.current = false;
-      // Keep manual mode active so orbit stays free
-    };
-
-    el.addEventListener("pointerdown", onPointerDown, { capture: true });
-    el.addEventListener("pointerup", onPointerUp);
-    el.addEventListener("pointercancel", onPointerUp);
-
-    return () => {
-      el.removeEventListener("pointerdown", onPointerDown, { capture: true });
-      el.removeEventListener("pointerup", onPointerUp);
-      el.removeEventListener("pointercancel", onPointerUp);
-    };
-  }, [gl, isDraggingRef, isManualRef]);
-
-  // ── Frame Loop ─────────────────────────────────────────────────────────
-  useFrame(() => {
     const controls = controlsRef.current;
     if (!controls) return;
 
-    const progress = progressRef.current ?? 0;
-    const sample = getCameraSample(CAMERA_POINTS, progress);
-    if (sampleRef) sampleRef.current = sample;
+    camera.position.copy(FAR);
+    controls.target.set(0, 0, 0);
+    controls.update();
+  }, [camera]);
 
-    if (isManualRef.current) {
-      // ORBIT MODE: let user control camera freely
-      controls.enabled = true;
-      controls.update(); // REQUIRED for damping to work
+  useFrame((_, delta) => {
+    const controls = controlsRef.current;
+    if (!controls || !progressRef) return;
 
-      // Keep goals synced so we can resume path smoothly later
-      goalPosRef.current.set(...sample.position);
-      goalTgtRef.current.set(...sample.target);
-      return;
-    }
+    const progress = progressRef.current;
 
-    // CINEMATIC MODE: scroll-driven path
-    controls.enabled = false;
+    targetPos.current.lerpVectors(FAR, CLOSE, progress);
 
-    goalPosRef.current.set(...sample.position);
-    goalTgtRef.current.set(...sample.target);
+    // Smooth camera movement
+    currentPos.current.lerp(targetPos.current, 1 - Math.exp(-4 * delta));
 
-    camera.position.lerp(goalPosRef.current, positionLerp);
-    targetRef.current.lerp(goalTgtRef.current, targetLerp);
-    camera.lookAt(targetRef.current);
-    controls.target.copy(targetRef.current);
+    controls.object.position.copy(currentPos.current);
 
-    if (sample.fov && camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = THREE.MathUtils.lerp(camera.fov, sample.fov, 0.05);
-      camera.updateProjectionMatrix();
-    }
+    controls.update();
   });
 
   return (
     <OrbitControls
       ref={controlsRef}
-      enableZoom={true}
-      enableDamping={true}
-      dampingFactor={0.05}
-      enablePan={true}
+      enableZoom={false}
+      enablePan={false}
       enableRotate={true}
-      minDistance={5}
-      maxDistance={120}
-      maxPolarAngle={Math.PI / 2.1}
-      target={[0, 0, 5]}
+      enableDamping
+      dampingFactor={0.08}
+      target={[0, 0, 0]}
+      minDistance={8}
+      maxDistance={300}
+      minPolarAngle={0.2}
+      maxPolarAngle={Math.PI / 2.2}
     />
   );
 }
 
-/** @deprecated Use SceneControls */
 export const CameraRig = SceneControls;
+
+export function RotatingCity({
+  children,
+  enabled = true,
+}: {
+  children: React.ReactNode;
+  enabled?: boolean;
+}) {
+  const ref = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    if (!ref.current || !enabled) return;
+
+    ref.current.rotation.y -= delta * 0.08; // slow rotation
+  });
+
+  return <group ref={ref}>{children}</group>;
+}
+
+
+export function RotatingModal({ children }: { children: React.ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    if (!ref.current) return;
+
+    ref.current.rotation.y -= delta * 0.8; // slow rotation
+  });
+
+  return <group ref={ref}>{children}</group>;
+}
