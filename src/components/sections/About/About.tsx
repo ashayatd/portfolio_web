@@ -31,13 +31,13 @@ const contacts = [
     icon: FiLinkedin,
     label: "LinkedIn",
     value: "linkedin.com/in/ashay-tamrakar",
-    href: "https://linkedin.com/in/ashay-tamrakar",
+    href: "https://www.linkedin.com/in/ashay-tamrakar-b7a993167",
   },
   {
     icon: FiMail,
     label: "Email",
     value: "ashaytamrakar@gmail.com",
-    href: "mailto:ashaytamrakar@gmail.com",
+    href: "mailto:ashay.tamrakar@gmail.com",
   },
 ];
 
@@ -83,8 +83,7 @@ export default function About() {
             </h2>
 
             <p className="mt-5 text-base leading-relaxed text-slate-500 sm:text-lg">
-              Full-stack developer with {getExperience().label.toLowerCase()} of
-              experience building modern web applications using React, Node.js,
+              Full-stack developer building modern web applications using React, Node.js,
               and scalable backend architectures.
             </p>
 

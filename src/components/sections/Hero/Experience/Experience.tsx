@@ -223,7 +223,7 @@ export default function SnakeTimeline() {
           {/* ── Focus window ── */}
           <div
             className="relative mt-6 overflow-hidden"
-            style={{ height: WINDOW_H }}
+            style={{ height: WINDOW_H, padding: '10px' }}
           >
             {/* Center spine: faint full path + completed top half */}
             <div className="absolute top-0 left-[26px] h-full w-[3px] -translate-x-1/2 rounded-full bg-slate-200 sm:left-1/2" />

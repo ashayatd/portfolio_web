@@ -94,7 +94,7 @@ export function Hero() {
           </div>
 
           {/* Stats */}
-          <div className="w-full lg:w-[50rem]">
+          <div className="w-full">
             <div className="grid grid-cols-2 gap-4 lg:flex lg:flex-wrap lg:justify-center lg:gap-10 bg-white px-3 py-4 rounded-xl">
               <div className="flex items-center gap-3 pr-4 lg:border-r lg:border-gray-300">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
@@ -121,7 +121,7 @@ export function Hero() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 pr-4 lg:border-r lg:border-gray-300">
+              {/* <div className="flex items-center gap-3 pr-4 lg:border-r lg:border-gray-300">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                   <svg
                     className="h-5 w-5"
@@ -144,7 +144,7 @@ export function Hero() {
                   <p className="text-sm text-gray-500">Experience</p>
                   <p className="text-xs text-gray-400">Since Oct 2023</p>
                 </div>
-              </div>
+              </div> */}
 
               <div className="flex items-center gap-3 pr-4 lg:border-r lg:border-gray-300">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
