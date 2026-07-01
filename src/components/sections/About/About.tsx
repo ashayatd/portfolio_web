@@ -14,7 +14,7 @@ import { FiGithub, FiLinkedin, FiMail } from "react-icons/fi";
 import { getExperience, PROJECT_COUNT } from "@/lib/profile";
 
 const stats = [
-  { icon: Rocket, value: getExperience().short, label: "Years Experience" },
+  // { icon: Rocket, value: getExperience().short, label: "Years Experience" },
   { icon: Code2, value: PROJECT_COUNT, label: "Production Projects" },
   { icon: Layers, value: "15+", label: "Technologies Used" },
   { icon: GraduationCap, value: "100%", label: "Commitment To Learning" },
