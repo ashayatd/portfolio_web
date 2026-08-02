@@ -2,13 +2,11 @@
 
 import { motion, type Variants } from "framer-motion";
 import {
-  Rocket,
   Code2,
   Layers,
   GraduationCap,
   MapPin,
   ArrowUpRight,
-  Image as ImageIcon,
 } from "lucide-react";
 import { FiGithub, FiLinkedin, FiMail } from "react-icons/fi";
 import { getExperience, PROJECT_COUNT } from "@/lib/profile";
@@ -109,12 +107,13 @@ export default function About() {
 
           {/* RIGHT — contact card on top, image space below */}
           <motion.div variants={item} className="flex flex-col gap-6">
-            {/* Image space — drop your photo here */}
-            <div className="relative flex min-h-[280px] flex-1 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-indigo-200 bg-gradient-to-br from-indigo-50/70 to-violet-50/70">
-              <div className="flex flex-col items-center gap-2 text-slate-400">
-                <ImageIcon size={34} className="text-indigo-300" />
-                <span className="text-sm font-medium">Your Photo</span>
-              </div>
+            {/* Profile photo */}
+            <div className="relative min-h-[280px] flex-1 overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 to-violet-50/70 shadow-sm">
+              <img
+                src="/assets/profile.png"
+                alt="Ashay Tamrakar"
+                className="absolute inset-0 h-full w-full object-cover object-top"
+              />
             </div>
 
             {/* Contact card */}
@@ -161,7 +160,7 @@ export default function About() {
         {/* ── Bottom: stats, horizontal full-width ── */}
         <motion.div
           variants={item}
-          className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
+          className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4"
         >
           {stats.map(({ icon: Icon, value, label }) => (
             <div
