@@ -9,3 +9,4 @@ export {
 export { useSectionProgress } from "./useSectionProgress";
 export { useStickyScene } from "./useStickyScene";
 export { useDebugLogger } from "./useDebugLogger";
+export { useIsDesktop } from "./useIsDesktop";

@@ -1,7 +1,7 @@
 "use client";
 import { useThree } from "@react-three/fiber";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 // import { ScrollProgressBar, useScrollController } from "./ScrollController";
@@ -25,7 +25,7 @@ import { RoadNetwork } from "./RoadBox";
 import { Foundation } from "./Foundations";
 import { Garden } from "./GardenRect";
 import { BuildingBillboard } from "./InfoBillboard";
-import { Character } from "./Character/Character";
+import { Character, GROUND_NAME } from "./Character/Character";
 import { CharacterCamera } from "./Character/CharacterCamera";
 
 /* ========================= */
@@ -518,7 +518,9 @@ function BasePlatform() {
   ];
 
   return (
-    <group>
+    // Named so the character's ground probe can raycast against the walkable
+    // surfaces only — without it he'd happily stand on a treetop.
+    <group name={GROUND_NAME}>
       {/* Edge foundations */}
       {foundations.map((f, i) => (
         <group key={`edge-${i}`} position={f.position} rotation={f.rotation}>
@@ -576,19 +578,50 @@ export function CityScene({
   onNavigate?: (id: string) => void;
 }) {
   const characterRef = useRef<THREE.Group>(null);
-  const yawRef = useRef(0); // camera azimuth, driven by mouse-look
+  // Camera azimuth, driven by mouse-look. Starts at PI so "forward" is -Z:
+  // you spawn on the south road looking up at the fountain and the city.
+  const yawRef = useRef(Math.PI);
+  // Camera elevation. 0.35 rad matches the original over-the-shoulder framing;
+  // pushing it negative tilts the view up the towers.
+  const pitchRef = useRef(0.35);
   const { gl } = useThree();
 
-  // Mouse-look: horizontal mouse movement orbits the camera (and WASD follows).
+  // While walking around, a click means "capture the mouse" — not "jump to a
+  // section", which would throw you out of the city on the first look-around.
+  const navigate = exploreMode ? undefined : onNavigate;
+
+  // Mouse-look: click the canvas to capture the cursor, then horizontal mouse
+  // movement orbits the camera (and WASD moves relative to it). Esc releases.
   useEffect(() => {
     if (!exploreMode) return;
     const el = gl.domElement;
+
+    // Clamped so you can crane up at the towers without flipping over the top
+    // or scraping the camera along the road.
+    const MIN_PITCH = -0.55;
+    const MAX_PITCH = 1.2;
+
     const onMove = (e: MouseEvent) => {
-      // Only turn while dragging OR pointer-locked feels heavy; use raw move.
-      yawRef.current -= e.movementX * 0.0035;
+      if (document.pointerLockElement !== el) return;
+      yawRef.current -= e.movementX * 0.0025;
+      pitchRef.current = Math.min(
+        MAX_PITCH,
+        Math.max(MIN_PITCH, pitchRef.current + e.movementY * 0.0025),
+      );
     };
-    el.addEventListener("mousemove", onMove);
-    return () => el.removeEventListener("mousemove", onMove);
+    const onClick = () => {
+      if (document.pointerLockElement === el) return;
+      // Chrome rejects a re-lock that happens too soon after an exit.
+      void Promise.resolve(el.requestPointerLock()).catch(() => {});
+    };
+
+    el.addEventListener("click", onClick);
+    document.addEventListener("mousemove", onMove);
+    return () => {
+      el.removeEventListener("click", onClick);
+      document.removeEventListener("mousemove", onMove);
+      if (document.pointerLockElement === el) document.exitPointerLock();
+    };
   }, [exploreMode, gl]);
 
   return (
@@ -699,20 +732,21 @@ export function CityScene({
         />
 
         {exploreMode && (
-          <>
+          <Suspense fallback={null}>
             <CharacterCamera
               targetRef={characterRef}
               yawRef={yawRef}
+              pitchRef={pitchRef}
               isActive={exploreMode}
             />
             <Character
               ref={characterRef}
-              position={[0, 0, 12]}
+              position={[0, GROUND_Y, 12]}
               isActive={exploreMode}
               yawRef={yawRef}
               buildingBounds={BUILDING_BOUNDS}
             />
-          </>
+          </Suspense>
         )}
 
         {/* Road Network */}
@@ -728,7 +762,8 @@ export function CityScene({
           items={["2+ Years", "MERN Stack", "Backend", "REST APIs"]}
           accent="#8B5CF6"
           targetId="experience"
-          onNavigate={onNavigate}
+          onNavigate={navigate}
+          interactive={!exploreMode}
         >
           <group position={[0, 0, -21]}>
             <BuildingA width={5.2} height={11} depth={5.2} floors={4} />
@@ -742,7 +777,8 @@ export function CityScene({
           items={["Frontend", "Backend", "DevOps"]}
           accent="#5A8A5A"
           targetId="tech"
-          onNavigate={onNavigate}
+          onNavigate={navigate}
+          interactive={!exploreMode}
         >
           <group position={[0, 5.1, 21]}>
             <BuildingB />
@@ -756,7 +792,8 @@ export function CityScene({
           items={["7+ Shipped", "Production", "Full-Stack", "Web Apps"]}
           accent="#69b9fa"
           targetId="projects"
-          onNavigate={onNavigate}
+          onNavigate={navigate}
+          interactive={!exploreMode}
         >
           <group position={[-21, 1.6, 0]}>
             <BuildingC />
@@ -777,7 +814,8 @@ export function CityScene({
           ]}
           accent="#f4a261"
           targetId="skills"
-          onNavigate={onNavigate}
+          onNavigate={navigate}
+          interactive={!exploreMode}
         >
           <group position={[21, 3, -2.5]} rotation={[0, 4.7, 0]}>
             <BuildingD />
@@ -785,7 +823,11 @@ export function CityScene({
         </BuildingBillboard>
 
         <group position={[0, -1.5, 0]}>
-          <Fountain targetId="about" onNavigate={onNavigate} />
+          <Fountain
+            targetId="about"
+            onNavigate={navigate}
+            interactive={!exploreMode}
+          />
         </group>
         {/* <hemisphereLight
         color="#ffffff"
@@ -811,7 +853,7 @@ export function CityScene({
             position={l.position}
             rotation={[0, l.rotation, 0]}
           >
-            <StreetLamp />
+            <StreetLamp lit={!exploreMode} />
           </group>
         ))}
         {/* ===================================== */}

@@ -17,10 +17,13 @@ interface SmoothScrollProviderProps {
 interface SmoothScrollContextValue {
   /** Smoothly scroll to an element (selector or id) or a pixel offset. */
   scrollTo: (target: string | number) => void;
+  /** Freeze/unfreeze page scrolling (used by fullscreen overlays). */
+  setScrollLock: (locked: boolean) => void;
 }
 
 const SmoothScrollContext = createContext<SmoothScrollContextValue>({
   scrollTo: () => {},
+  setScrollLock: () => {},
 });
 
 /** Access the Lenis-powered smooth scroll (e.g. for nav links). */
@@ -63,8 +66,20 @@ export function SmoothScrollProvider({ children }: SmoothScrollProviderProps) {
     lenisRef.current?.scrollTo(target, { offset: -80, duration: 1.2 });
   }, []);
 
+  // While the city overlay is open the page must not move underneath it —
+  // stop Lenis *and* native scrolling (wheel/keys still reach the window).
+  const setScrollLock = useCallback((locked: boolean) => {
+    if (locked) {
+      lenisRef.current?.stop();
+      document.body.style.overflow = "hidden";
+    } else {
+      lenisRef.current?.start();
+      document.body.style.overflow = "";
+    }
+  }, []);
+
   return (
-    <SmoothScrollContext.Provider value={{ scrollTo }}>
+    <SmoothScrollContext.Provider value={{ scrollTo, setScrollLock }}>
       {children}
     </SmoothScrollContext.Provider>
   );

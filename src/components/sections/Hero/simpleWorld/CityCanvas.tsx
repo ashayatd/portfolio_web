@@ -86,6 +86,9 @@ export function CityCanvas({
     <div ref={wrapRef} className="h-full w-full">
       <Canvas
         frameloop={active ? "always" : "never"}
+        // Stay at 1x even fullscreen. The scene runs ~20 dynamic lights through
+        // meshStandardMaterial, so cost scales with pixels × lights — and going
+        // fullscreen already multiplies the pixel count several times over.
         dpr={1}
         camera={{ position: [78, 88, 98], fov: 25, near: 0.1, far: 500 }}
         className="h-full w-full !bg-transparent"

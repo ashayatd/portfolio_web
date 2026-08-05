@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
 
 interface InfoBillboardProps {
@@ -242,33 +242,46 @@ export function BuildingBillboard({
   children,
   targetId,
   onNavigate,
+  interactive = true,
   ...billboard
 }: InfoBillboardProps & {
   children: ReactNode;
   /** Section id this building links to, e.g. "projects". */
   targetId?: string;
   onNavigate?: (id: string) => void;
+  /**
+   * Attach pointer handlers. Off at street level: pointer lock emits mousemove
+   * at the mouse's polling rate and R3F raycasts the scene on every one, so an
+   * empty interaction list is the difference between a raycast per event and
+   * none at all.
+   */
+  interactive?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
+
+  const handlers = interactive
+    ? {
+        onPointerOver: (e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          setHovered(true);
+          document.body.style.cursor = "pointer";
+        },
+        onPointerOut: (e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          setHovered(false);
+          document.body.style.cursor = "auto";
+        },
+        onClick: (e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          if (targetId) onNavigate?.(targetId);
+        },
+      }
+    : {};
+
   return (
-    <group
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(true);
-        document.body.style.cursor = "pointer";
-      }}
-      onPointerOut={(e) => {
-        e.stopPropagation();
-        setHovered(false);
-        document.body.style.cursor = "auto";
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (targetId) onNavigate?.(targetId);
-      }}
-    >
+    <group {...handlers}>
       {children}
-      <InfoBillboard {...billboard} hovered={hovered} />
+      <InfoBillboard {...billboard} hovered={hovered && interactive} />
     </group>
   );
 }

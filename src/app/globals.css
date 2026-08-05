@@ -48,6 +48,10 @@ body {
 
 html {
   scrollbar-width: none;
+  /* <html> is the default scroll container for framer-motion's useScroll.
+     It measures target offsets against the container, which it can only do
+     reliably when the container isn't position: static. */
+  position: relative;
 }
 
 html::-webkit-scrollbar,

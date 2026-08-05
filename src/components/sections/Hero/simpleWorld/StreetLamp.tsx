@@ -2,6 +2,12 @@
 
 interface StreetLampProps {
   position?: [number, number, number];
+  /**
+   * Whether the lamp contributes a real point light. There are 16 of these and
+   * every one of them is evaluated in every meshStandardMaterial fragment, so
+   * street level turns them off — the emissive bulb still reads as "lit".
+   */
+  lit?: boolean;
 }
 
 const COLOR = {
@@ -9,7 +15,10 @@ const COLOR = {
   lamp: "#FFF8E8",
 };
 
-export function StreetLamp({ position = [0, 0, 0] }: StreetLampProps) {
+export function StreetLamp({
+  position = [0, 0, 0],
+  lit = true,
+}: StreetLampProps) {
   return (
     <group position={position} scale={[1.5, 1.5, 1.5]}>
       {/* Pole — thin and tall */}
@@ -41,12 +50,14 @@ export function StreetLamp({ position = [0, 0, 0] }: StreetLampProps) {
       </mesh>
 
       {/* Subtle point light — not overpowering */}
-      <pointLight
-        position={[0.7, 3.8, 0]}
-        intensity={1.2}
-        distance={5}
-        color={COLOR.lamp}
-      />
+      {lit && (
+        <pointLight
+          position={[0.7, 3.8, 0]}
+          intensity={1.2}
+          distance={5}
+          color={COLOR.lamp}
+        />
+      )}
     </group>
   );
 }

@@ -14,6 +14,7 @@ import {
 import { CityCanvas } from "./simpleWorld/CityCanvas";
 import { getExperience, PROJECT_COUNT } from "@/lib/profile";
 import { useSmoothScroll } from "@/providers/SmoothScrollProvider";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { RiNextjsFill, RiReactjsLine } from "react-icons/ri";
 import {
   SiDocker,
@@ -29,7 +30,10 @@ import { FaAws } from "react-icons/fa";
 
 export function Hero() {
   const [explore, setExplore] = useState(false);
-  const { scrollTo } = useSmoothScroll();
+  const { scrollTo, setScrollLock } = useSmoothScroll();
+  // Walking the city needs a keyboard + a lockable pointer, so it is desktop
+  // only (Tailwind `lg` and up).
+  const isDesktop = useIsDesktop();
 
   // Clicking a billboard in the 3D city navigates to that section
   // (and exits explore mode if we're walking around).
@@ -37,6 +41,31 @@ export function Hero() {
     setExplore(false);
     scrollTo(`#${id}`);
   };
+
+  // While the overlay is open: freeze the page behind it, let Esc close it
+  // (the browser eats the first Esc to release pointer lock, so the second one
+  // closes), and bail out entirely if the viewport shrinks below desktop.
+  useEffect(() => {
+    if (!explore) return;
+    setScrollLock(true);
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.pointerLockElement) setExplore(false);
+    };
+    const tooSmall = window.matchMedia("(max-width: 1023px)");
+    const onResize = () => {
+      if (tooSmall.matches) setExplore(false);
+    };
+
+    window.addEventListener("keydown", onKey);
+    tooSmall.addEventListener("change", onResize);
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      tooSmall.removeEventListener("change", onResize);
+      setScrollLock(false);
+    };
+  }, [explore, setScrollLock]);
 
   // Compute experience on the client to keep server/client markup in sync
   // across month boundaries (avoids hydration mismatch).
@@ -84,13 +113,16 @@ export function Hero() {
               Download Resume
               <Download size={16} />
             </button>
-            {/* <button
-              onClick={() => setExplore(true)}
-              className="flex font-bold items-center gap-1 text-slate-600 hover:text-slate-900 text-sm weight-600 transition-colors cursor-pointer"
-            >
-              Explore Campus
-              <ArrowRight size={14} />
-            </button> */}
+            {/* Desktop only — walking the city needs WASD + a mouse. */}
+            {isDesktop && (
+              <button
+                onClick={() => setExplore(true)}
+                className="flex items-center justify-center gap-2 cursor-pointer bg-white hover:bg-indigo-50 text-indigo-600 px-6 py-3 rounded-xl text-sm font-semibold border border-indigo-200 transition-colors"
+              >
+                Explore City
+                <Rocket size={16} />
+              </button>
+            )}
           </div>
 
           {/* Stats */}
@@ -207,7 +239,10 @@ export function Hero() {
             {explore && (
               <>
                 <button
-                  onClick={() => setExplore(false)}
+                  onClick={() => {
+                    document.exitPointerLock?.();
+                    setExplore(false);
+                  }}
                   aria-label="Close campus view"
                   className="absolute right-5 top-5 z-[61] flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-white"
                 >
@@ -216,11 +251,16 @@ export function Hero() {
                 </button>
                 <div className="absolute bottom-5 left-5 z-[61] rounded-xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600 shadow-sm backdrop-blur">
                   <p>
-                    <b className="text-slate-900">WASD</b> — Move
+                    <b className="text-slate-900">Click</b> — Capture mouse ·{" "}
+                    <b className="text-slate-900">Mouse</b> — Look
                   </p>
                   <p>
-                    <b className="text-slate-900">Shift</b> — Run ·{" "}
-                    <b className="text-slate-900">Mouse</b> — Look
+                    <b className="text-slate-900">WASD</b> — Move ·{" "}
+                    <b className="text-slate-900">Shift</b> — Run
+                  </p>
+                  <p>
+                    <b className="text-slate-900">Esc</b> — Release mouse, again
+                    to exit
                   </p>
                 </div>
               </>
