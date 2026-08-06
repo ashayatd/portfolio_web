@@ -50,8 +50,12 @@ export default function RootLayout({
         <SmoothScrollProvider>
           <DebugProvider>
             <UniversalScrollLogger />
-            {/* Global navbar — visible on every page */}
-            <header className="fixed inset-x-0 top-0 z-50 bg-white/60 backdrop-blur-md">
+            {/* Global navbar — visible on every page, except while the
+                fullscreen city view owns the viewport (see .city-view). */}
+            <header
+              data-site-header
+              className="fixed inset-x-0 top-0 z-50 bg-white/60 backdrop-blur-md"
+            >
               <Navbar />
             </header>
             <TimelineProvider>{children}</TimelineProvider>

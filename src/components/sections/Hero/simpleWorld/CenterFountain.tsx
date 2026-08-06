@@ -101,9 +101,13 @@ function useNameTexture() {
     ctx.fillRect(cx - 230, divY, 460, 10);
 
     // --- subtitle (small, secondary) ---
+    // Stacked: the plaque is a tall 900px-wide canvas, and the title on one
+    // line overran it — the ends were being cut off ("ULL STACK DEVELOPE").
     ctx.fillStyle = "#5a6573";
     ctx.font = "600 86px Arial, sans-serif";
-    ctx.fillText("FULL STACK DEVELOPER", cx, divY + 110);
+    ["FULL STACK", "DEVELOPER"].forEach((line, i) => {
+      ctx.fillText(line, cx, divY + 110 + i * 104);
+    });
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.anisotropy = 8;

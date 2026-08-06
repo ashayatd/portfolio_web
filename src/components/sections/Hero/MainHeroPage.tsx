@@ -49,6 +49,15 @@ export function Hero() {
     if (!explore) return;
     setScrollLock(true);
 
+    // Hide the global navbar — it overlaps the city and can't be out-stacked.
+    // The overlay lives inside a flex item carrying z-10, which opens a
+    // stacking context its own z-60 can never escape, so the z-50 header wins
+    // no matter what. Set the style directly rather than via a stylesheet
+    // class: it applies the moment this runs, with no CSS rebuild involved.
+    const header = document.querySelector<HTMLElement>("[data-site-header]");
+    const previousDisplay = header?.style.display ?? "";
+    if (header) header.style.display = "none";
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !document.pointerLockElement) setExplore(false);
     };
@@ -63,6 +72,7 @@ export function Hero() {
     return () => {
       window.removeEventListener("keydown", onKey);
       tooSmall.removeEventListener("change", onResize);
+      if (header) header.style.display = previousDisplay;
       setScrollLock(false);
     };
   }, [explore, setScrollLock]);
@@ -79,7 +89,10 @@ export function Hero() {
     <section className="w-full px-4 sm:px-8 lg:px-12 pt-24 lg:pt-28 pb-16 bg-[linear-gradient(154deg,#ffffff,#032dfc1c)]">
       <div className="relative w-full flex flex-col lg:flex-row mt-6 lg:mt-[3rem] items-center">
         {/* Left Content */}
-        <div className="w-full lg:w-[50%] flex flex-col gap-6 sm:gap-8 z-10">
+        {/* No z-index here: as a flex item it would open a stacking context,
+            trapping the fullscreen city overlay's z-60 below the z-50 navbar.
+            It's the only flex child, so it has nothing to stack against. */}
+        <div className="w-full lg:w-[50%] flex flex-col gap-6 sm:gap-8">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 w-fit">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />

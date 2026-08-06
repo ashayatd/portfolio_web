@@ -239,7 +239,14 @@ function RoadLine({
   return (
     <group position={position} rotation={[0, rotation, 0]}>
       {Array.from({ length: segments }).map((_, i) => (
-        <mesh key={i} position={[0, 0, i * totalStep - offset - offSetValue]}>
+        <mesh
+          key={i}
+          position={[
+            0,
+            ROAD_MARK_LIFT,
+            i * totalStep - offset - offSetValue,
+          ]}
+        >
           <boxGeometry args={[width, 0.02, segmentLength]} />
           <meshStandardMaterial color={color} toneMapped={false} />
         </mesh>
@@ -457,8 +464,35 @@ const benches = benchSpots.map(([x, z]) => ({
 /* BASE PLATFORM (like the image) */
 /* ========================= */
 
+/* Asphalt, deliberately mid-grey rather than near-black: the plots are pale
+   (#eceaea / #dad3d3) so this separates cleanly while keeping the city light. */
+const ROAD_COLOR = "#8F959D";
+/** Slab top is -0.5; sit the road 3cm proud of it to stay out of z-fighting. */
+const ROAD_SURFACE_Y = -0.47;
+/** Lane paint has to clear the road surface in turn. */
+const ROAD_MARK_LIFT = 0.05;
+/**
+ * Planter beds sit on the raised plots (top 0.13). The Garden's dirt bed hangs
+ * 0.06 below its own origin, so this rests it on the plot instead of hovering
+ * — the old 0.6 left a 0.47 gap, which is what read as a tall grass platform.
+ */
+const GARDEN_Y = 0.19;
+
+/* ---- Opening shot ----------------------------------------------------
+   You arrive on the south-east diagonal road facing the monument. The four
+   buildings sit on the axes, so a diagonal approach frames two of them at
+   once: Projects (-x) falls left of frame, Experience (-z) right, and Skills
+   and Technology stay behind the camera. Distance is 7.78 — close enough for
+   the monument to read, and clear of its collision box at 4.2.            */
+const SPAWN_POS: [number, number, number] = [5.5, GROUND_Y, 5.5];
+/** forward = (sin, cos) = (-0.707, -0.707): straight at the monument. */
+const SPAWN_YAW = (5 * Math.PI) / 4;
+/** Gentle downward tilt — leaves the towers their full height in frame. */
+const SPAWN_PITCH = 0.24;
+
 function BasePlatform() {
   const PLATFORM_SIZE = 65;
+  const RADIUS = 1.5;
   const FOUNDATION_WIDTH = 8;
   const FOUNDATION_DEPTH = 17;
   const OFFSET = 20;
@@ -552,12 +586,27 @@ function BasePlatform() {
       <RoundedBox
         position={[0, -2, 0]}
         args={[PLATFORM_SIZE, 3, PLATFORM_SIZE]}
-        radius={1.5}
+        radius={RADIUS}
         smoothness={4}
         receiveShadow
       >
         <meshStandardMaterial color="#ffffff" roughness={0.95} />
       </RoundedBox>
+
+      {/* Road surface. The slab underneath stays white so its rounded rim
+          still reads as a kerb around the city; this only recolours the top.
+          Sized to the slab's flat area (radius eats 1.5 per side) and lifted
+          clear of it — a hair above would z-fight from the docked camera. */}
+      <mesh
+        position={[0, ROAD_SURFACE_Y, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+      >
+        <planeGeometry
+          args={[PLATFORM_SIZE - RADIUS * 2, PLATFORM_SIZE - RADIUS * 2]}
+        />
+        <meshStandardMaterial color={ROAD_COLOR} roughness={1} />
+      </mesh>
     </group>
   );
 }
@@ -578,12 +627,11 @@ export function CityScene({
   onNavigate?: (id: string) => void;
 }) {
   const characterRef = useRef<THREE.Group>(null);
-  // Camera azimuth, driven by mouse-look. Starts at PI so "forward" is -Z:
-  // you spawn on the south road looking up at the fountain and the city.
-  const yawRef = useRef(Math.PI);
-  // Camera elevation. 0.35 rad matches the original over-the-shoulder framing;
-  // pushing it negative tilts the view up the towers.
-  const pitchRef = useRef(0.35);
+  // Camera azimuth, driven by mouse-look. See SPAWN_YAW.
+  const yawRef = useRef(SPAWN_YAW);
+  // Camera elevation. Positive looks down on the character; pushing it
+  // negative tilts the view up the towers.
+  const pitchRef = useRef(SPAWN_PITCH);
   const { gl } = useThree();
 
   // While walking around, a click means "capture the mouse" — not "jump to a
@@ -704,28 +752,28 @@ export function CityScene({
         />
 
         <Garden
-          position={[-10, 0.6, 0]}
+          position={[-10, GARDEN_Y, 0]}
           rotation={[0, Math.PI / 1, 0]}
           width={1.2}
           length={6}
         />
 
         <Garden
-          position={[10, 0.6, 0]}
+          position={[10, GARDEN_Y, 0]}
           rotation={[0, Math.PI / 1, 0]}
           width={1.2}
           length={6}
         />
 
         <Garden
-          position={[0, 0.6, -10]}
+          position={[0, GARDEN_Y, -10]}
           rotation={[0, Math.PI / 2, 0]}
           width={1.2}
           length={6}
         />
 
         <Garden
-          position={[0, 0.6, 10]}
+          position={[0, GARDEN_Y, 10]}
           rotation={[0, Math.PI / 2, 0]}
           width={1.2}
           length={6}
@@ -741,7 +789,7 @@ export function CityScene({
             />
             <Character
               ref={characterRef}
-              position={[0, GROUND_Y, 12]}
+              position={SPAWN_POS}
               isActive={exploreMode}
               yawRef={yawRef}
               buildingBounds={BUILDING_BOUNDS}
