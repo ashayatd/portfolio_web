@@ -1,7 +1,14 @@
 "use client";
 import { useThree } from "@react-three/fiber";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 // import { ScrollProgressBar, useScrollController } from "./ScrollController";
@@ -26,6 +33,16 @@ import { Foundation } from "./Foundations";
 import { Garden } from "./GardenRect";
 import { BuildingBillboard } from "./InfoBillboard";
 import { Character, GROUND_NAME } from "./Character/Character";
+import { DebugGrid, cellFromLocal, publishCell } from "./DebugGrid";
+import {
+  ObstacleCollector,
+  SOLID,
+  solidRadius,
+  type Bounds,
+} from "./Obstacles";
+import { StreetDetail } from "./StreetDetail";
+import { InfoBoards } from "./InfoBoard";
+import { nearestZone, publishNearby, resetNearby } from "./Proximity";
 import { CharacterCamera } from "./Character/CharacterCamera";
 
 /* ========================= */
@@ -490,6 +507,16 @@ const SPAWN_YAW = (5 * Math.PI) / 4;
 /** Gentle downward tilt — leaves the towers their full height in frame. */
 const SPAWN_PITCH = 0.24;
 
+/** TEMPORARY: numbered collision-debug grid. Flip to true while tuning
+ *  collision — it also switches on the live cell readout. */
+const DEBUG_GRID = false;
+
+/**
+ * Yaw applied to the whole city. Exported so the debug top-down camera can
+ * match it and photograph the grid square-on instead of tilted.
+ */
+export const CITY_ROTATION_Y = -0.62;
+
 function BasePlatform() {
   const PLATFORM_SIZE = 65;
   const RADIUS = 1.5;
@@ -638,6 +665,25 @@ export function CityScene({
   // section", which would throw you out of the city on the first look-around.
   const navigate = exploreMode ? undefined : onNavigate;
 
+  // Collision, measured from the scene on mount. Seeded with the old
+  // hand-written boxes so there is never a frame with no collision at all.
+  const [obstacles, setObstacles] = useState<Bounds[]>(BUILDING_BOUNDS);
+
+  // One place the character's movement fans out from: proximity first (it's a
+  // real feature), debug reporting second (it isn't).
+  const handlePosition = useCallback(
+    (x: number, z: number, blocked: boolean) => {
+      publishNearby(nearestZone(x, z));
+      if (DEBUG_GRID) publishCell({ cell: cellFromLocal(x, z), x, z, blocked });
+    },
+    [],
+  );
+
+  // Leaving the city must clear the zone, or the prompt reappears on re-entry.
+  useEffect(() => {
+    if (!exploreMode) resetNearby();
+  }, [exploreMode]);
+
   // Mouse-look: click the canvas to capture the cursor, then horizontal mouse
   // movement orbits the camera (and WASD moves relative to it). Esc releases.
   useEffect(() => {
@@ -690,7 +736,7 @@ export function CityScene({
         color="#dce8ff"
       />
 
-      <group rotation={[0, -0.62, 0]} position={[0, 0, 0]}>
+      <group rotation={[0, CITY_ROTATION_Y, 0]} position={[0, 0, 0]}>
         {/* Lighting */}
         {/* Base Platform */}
         <BasePlatform />
@@ -779,6 +825,22 @@ export function CityScene({
           length={6}
         />
 
+        {/* Sits outside the exploreMode branch so the docked bird's-eye view
+            shows it too — that view is what makes a top-down reference shot
+            possible. It lives inside the rotated city group, so the cells stay
+            locked to the buildings no matter how far the city has spun. */}
+        {/* Measures every {...SOLID} object once mounted, so collision and
+            the debug tint both describe the real geometry. */}
+        <ObstacleCollector onCollect={setObstacles} rescanKey={exploreMode} />
+        {DEBUG_GRID && <DebugGrid bounds={obstacles} />}
+
+        {/* Drains, bollards and bins — a few pixels each from the docked
+            camera, so they only exist at eye level. */}
+        {exploreMode && <StreetDetail />}
+
+        {/* Park-style interpretation signs — only legible on foot. */}
+        {exploreMode && <InfoBoards />}
+
         {exploreMode && (
           <Suspense fallback={null}>
             <CharacterCamera
@@ -792,7 +854,8 @@ export function CityScene({
               position={SPAWN_POS}
               isActive={exploreMode}
               yawRef={yawRef}
-              buildingBounds={BUILDING_BOUNDS}
+              buildingBounds={obstacles}
+              onPosition={handlePosition}
             />
           </Suspense>
         )}
@@ -813,7 +876,7 @@ export function CityScene({
           onNavigate={navigate}
           interactive={!exploreMode}
         >
-          <group position={[0, 0, -21]}>
+          <group position={[0, 0, -21]} {...SOLID}>
             <BuildingA width={5.2} height={11} depth={5.2} floors={4} />
           </group>
         </BuildingBillboard>
@@ -828,7 +891,7 @@ export function CityScene({
           onNavigate={navigate}
           interactive={!exploreMode}
         >
-          <group position={[0, 5.1, 21]}>
+          <group position={[0, 5.1, 21]} {...SOLID}>
             <BuildingB />
           </group>
         </BuildingBillboard>
@@ -843,7 +906,7 @@ export function CityScene({
           onNavigate={navigate}
           interactive={!exploreMode}
         >
-          <group position={[-21, 1.6, 0]}>
+          <group position={[-21, 1.6, 0]} {...SOLID}>
             <BuildingC />
           </group>
         </BuildingBillboard>
@@ -865,12 +928,12 @@ export function CityScene({
           onNavigate={navigate}
           interactive={!exploreMode}
         >
-          <group position={[21, 3, -2.5]} rotation={[0, 4.7, 0]}>
+          <group position={[21, 3, -2.5]} rotation={[0, 4.7, 0]} {...SOLID}>
             <BuildingD />
           </group>
         </BuildingBillboard>
 
-        <group position={[0, -1.5, 0]}>
+        <group position={[0, -1.5, 0]} {...SOLID}>
           <Fountain
             targetId="about"
             onNavigate={navigate}
@@ -900,6 +963,7 @@ export function CityScene({
             key={`lamp-${i}`}
             position={l.position}
             rotation={[0, l.rotation, 0]}
+            {...solidRadius(0.35)}
           >
             <StreetLamp lit={!exploreMode} />
           </group>
@@ -908,20 +972,22 @@ export function CityScene({
         {/* TREES — clusters confined to the 4 corner triangles */}
         {/* ===================================== */}
         {trees.map((t, i) => (
-          <Tree key={i} position={t.position} />
+          <group key={i} {...solidRadius(0.7)}>
+            <Tree position={t.position} />
+          </group>
         ))}
         {buildingTrees.map((t, i) => (
-          <Tree key={`btree-${i}`} position={t.position} scale={t.scale} />
+          <group key={`btree-${i}`} {...solidRadius(0.7)}>
+            <Tree position={t.position} scale={t.scale} />
+          </group>
         ))}
         {/* ===================================== */}
         {/* BENCHES — 4, set back from the plaza, facing the monument */}
         {/* ===================================== */}
         {benches.map((b, i) => (
-          <Bench
-            key={`bench-${i}`}
-            position={b.position}
-            rotation={[0, b.rotation, 0]}
-          />
+          <group key={`bench-${i}`} {...SOLID}>
+            <Bench position={b.position} rotation={[0, b.rotation, 0]} />
+          </group>
         ))}
         {/* ===================================== */}
         {/* CAMERA CONTROLS                       */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   ArrowRight,
   Download,
@@ -15,6 +15,8 @@ import { CityCanvas } from "./simpleWorld/CityCanvas";
 import { getExperience, PROJECT_COUNT } from "@/lib/profile";
 import { useSmoothScroll } from "@/providers/SmoothScrollProvider";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { subscribeCell, type CellInfo } from "./simpleWorld/DebugGrid";
+import { subscribeNearby, type Zone } from "./simpleWorld/Proximity";
 import { RiNextjsFill, RiReactjsLine } from "react-icons/ri";
 import {
   SiDocker,
@@ -25,6 +27,71 @@ import {
   SiTypescript,
 } from "react-icons/si";
 import { FaAws } from "react-icons/fa";
+
+// ─── Proximity prompt ───────────────────────────────────────────────
+// Walking up to a landmark is how you open a section at street level: the
+// pointer is locked, so a click means "capture the mouse", not "follow this".
+function ProximityPrompt({ onEnter }: { onEnter: (id: string) => void }) {
+  const [zone, setZone] = useState<Zone | null>(null);
+
+  useEffect(() => subscribeNearby(setZone), []);
+
+  useEffect(() => {
+    if (!zone) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "KeyE") {
+        e.preventDefault();
+        document.exitPointerLock?.();
+        onEnter(zone.id);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zone, onEnter]);
+
+  if (!zone) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-24 z-[61] flex justify-center">
+      <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white/95 px-5 py-3 shadow-lg backdrop-blur">
+        <kbd className="rounded-md border border-slate-300 bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">
+          E
+        </kbd>
+        <span className="text-sm text-slate-600">
+          Open <b className="text-slate-900">{zone.label}</b>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Cell readout (TEMPORARY, pairs with the DebugGrid) ─────────────
+// Kept as its own component with its own state: the character's position
+// updates constantly, and holding it in Hero would re-render the entire 3D
+// scene on every step.
+function CellReadout() {
+  const [info, setInfo] = useState<CellInfo | null>(null);
+  useEffect(() => subscribeCell(setInfo), []);
+  if (!info) return null;
+
+  return (
+    <div className="absolute right-5 top-20 z-[61] rounded-xl border border-slate-200 bg-white/90 px-4 py-3 font-mono text-sm text-slate-700 shadow-sm backdrop-blur">
+      <p className="text-lg font-bold text-slate-900">
+        Cell {info.cell ?? "—"}
+      </p>
+      <p className="text-xs text-slate-500">
+        x {info.x.toFixed(1)} · z {info.z.toFixed(1)}
+      </p>
+      <p
+        className={`text-xs font-semibold ${
+          info.blocked ? "text-red-600" : "text-emerald-600"
+        }`}
+      >
+        {info.blocked ? "INSIDE a solid volume" : "walkable"}
+      </p>
+    </div>
+  );
+}
 
 // ─── Hero ───────────────────────────────────────────────────────────
 
@@ -37,10 +104,33 @@ export function Hero() {
 
   // Clicking a billboard in the 3D city navigates to that section
   // (and exits explore mode if we're walking around).
-  const navigate = (id: string) => {
-    setExplore(false);
-    scrollTo(`#${id}`);
-  };
+  //
+  // Scrolling cannot happen in the same breath as closing the city: opening it
+  // called lenis.stop(), and the cleanup that restarts it only runs once React
+  // has committed setExplore(false). A scrollTo issued before then is handed to
+  // a stopped Lenis and silently dropped — you'd exit but never move. So park
+  // the target and let the effect below run it once the overlay has torn down.
+  const pendingScroll = useRef<string | null>(null);
+
+  const navigate = useCallback(
+    (id: string) => {
+      if (!explore) {
+        scrollTo(`#${id}`);
+        return;
+      }
+      pendingScroll.current = id;
+      setExplore(false);
+    },
+    [explore, scrollTo],
+  );
+
+  useEffect(() => {
+    if (explore) return;
+    const target = pendingScroll.current;
+    if (!target) return;
+    pendingScroll.current = null;
+    scrollTo(`#${target}`);
+  }, [explore, scrollTo]);
 
   // While the overlay is open: freeze the page behind it, let Esc close it
   // (the browser eats the first Esc to release pointer lock, so the second one
@@ -262,6 +352,8 @@ export function Hero() {
                   <X size={16} />
                   Close
                 </button>
+                <CellReadout />
+                <ProximityPrompt onEnter={navigate} />
                 <div className="absolute bottom-5 left-5 z-[61] rounded-xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600 shadow-sm backdrop-blur">
                   <p>
                     <b className="text-slate-900">Click</b> — Capture mouse ·{" "}
@@ -270,6 +362,9 @@ export function Hero() {
                   <p>
                     <b className="text-slate-900">WASD</b> — Move ·{" "}
                     <b className="text-slate-900">Shift</b> — Run
+                  </p>
+                  <p>
+                    <b className="text-slate-900">E</b> — Open a nearby building
                   </p>
                   <p>
                     <b className="text-slate-900">Esc</b> — Release mouse, again

@@ -3,6 +3,7 @@ import { useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
+import { COLLISION_RADIUS } from "../Obstacles";
 
 /**
  * Name of the group holding the walkable surfaces (base platform + raised
@@ -26,6 +27,12 @@ interface CharacterProps {
   }>;
   /** Half-size of the walkable platform — keeps the character from stepping off. */
   platformHalf?: number;
+  /**
+   * Debug hook: fired with the local XZ whenever the character has moved a
+   * meaningful distance, plus whether the collision model considers the spot
+   * solid. Throttled by distance so it isn't a per-frame callback.
+   */
+  onPosition?: (x: number, z: number, blocked: boolean) => void;
 }
 
 export const Character = forwardRef<THREE.Group, CharacterProps>(
@@ -36,6 +43,7 @@ export const Character = forwardRef<THREE.Group, CharacterProps>(
       yawRef,
       buildingBounds = [],
       platformHalf = 31,
+      onPosition,
     },
     ref,
   ) {
@@ -121,7 +129,7 @@ export const Character = forwardRef<THREE.Group, CharacterProps>(
     }, [actions]);
 
     const blocked = (p: THREE.Vector3): boolean => {
-      const r = 1.2;
+      const r = COLLISION_RADIUS;
       // Platform edge.
       if (Math.abs(p.x) > platformHalf || Math.abs(p.z) > platformHalf) {
         return true;
@@ -144,6 +152,9 @@ export const Character = forwardRef<THREE.Group, CharacterProps>(
     const nextPos = useRef(new THREE.Vector3());
     const targetQuat = useRef(new THREE.Quaternion());
     const up = useRef(new THREE.Vector3(0, 1, 0));
+
+    // Last position handed to onPosition, so it fires on movement not frames.
+    const reported = useRef({ x: Infinity, z: Infinity });
 
     // Ground probe scratch.
     const raycaster = useRef(new THREE.Raycaster());
@@ -204,6 +215,21 @@ export const Character = forwardRef<THREE.Group, CharacterProps>(
         if (!blocked(next)) {
           c.position.copy(next);
           g.position.copy(c.position);
+        }
+      }
+
+      // ---- Debug reporting ----
+      if (onPosition) {
+        const r = reported.current;
+        if (
+          Math.abs(c.position.x - r.x) > 0.2 ||
+          Math.abs(c.position.z - r.z) > 0.2
+        ) {
+          r.x = c.position.x;
+          r.z = c.position.z;
+          // "blocked" here means the spot he stands on is inside a collision
+          // volume — i.e. he got somewhere the model says he shouldn't be.
+          onPosition(r.x, r.z, blocked(c.position));
         }
       }
 
