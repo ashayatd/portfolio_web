@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
 
 interface FountainProps {
@@ -10,6 +10,8 @@ interface FountainProps {
   /** Section id this monument links to (e.g. "about"). */
   targetId?: string;
   onNavigate?: (id: string) => void;
+  /** Attach pointer handlers — off at street level, see BuildingBillboard. */
+  interactive?: boolean;
 }
 
 const COLOR = {
@@ -99,9 +101,13 @@ function useNameTexture() {
     ctx.fillRect(cx - 230, divY, 460, 10);
 
     // --- subtitle (small, secondary) ---
+    // Stacked: the plaque is a tall 900px-wide canvas, and the title on one
+    // line overran it — the ends were being cut off ("ULL STACK DEVELOPE").
     ctx.fillStyle = "#5a6573";
     ctx.font = "600 86px Arial, sans-serif";
-    ctx.fillText("FULL STACK DEVELOPER", cx, divY + 110);
+    ["FULL STACK", "DEVELOPER"].forEach((line, i) => {
+      ctx.fillText(line, cx, divY + 110 + i * 104);
+    });
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.anisotropy = 8;
@@ -359,6 +365,7 @@ export function Fountain({
   position = [0, 1.0, 0],
   targetId,
   onNavigate,
+  interactive = true,
 }: FountainProps) {
   const texture = useNameTexture();
   const banner = useNameBannerTexture();
@@ -366,34 +373,42 @@ export function Fountain({
   const [hovered, setHovered] = useState(false);
   const bannerRef = useRef<THREE.Mesh>(null);
 
-  // Smoothly ease the banner toward its target size each frame.
+  // Smoothly ease the banner toward its target size each frame. Skip the work
+  // entirely once it has settled, so an idle monument costs nothing.
   useFrame(() => {
     const mesh = bannerRef.current;
     if (!mesh) return;
     const tx = hovered ? HOVER_SCALE_X : 1;
     const ty = hovered ? HOVER_SCALE_Y : 1;
+    if (Math.abs(mesh.scale.x - tx) < 0.001) {
+      if (mesh.scale.x !== tx) mesh.scale.set(tx, ty, 1);
+      return;
+    }
     mesh.scale.x = THREE.MathUtils.lerp(mesh.scale.x, tx, 0.15);
     mesh.scale.y = THREE.MathUtils.lerp(mesh.scale.y, ty, 0.15);
   });
 
+  const handlers = interactive
+    ? {
+        onPointerOver: (e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          setHovered(true);
+          document.body.style.cursor = "pointer";
+        },
+        onPointerOut: (e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          setHovered(false);
+          document.body.style.cursor = "auto";
+        },
+        onClick: (e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          if (targetId) onNavigate?.(targetId);
+        },
+      }
+    : {};
+
   return (
-    <group
-      position={position}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(true);
-        document.body.style.cursor = "pointer";
-      }}
-      onPointerOut={(e) => {
-        e.stopPropagation();
-        setHovered(false);
-        document.body.style.cursor = "auto";
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (targetId) onNavigate?.(targetId);
-      }}
-    >
+    <group position={position} {...handlers}>
       {/* Camera-facing name banner — readable from the bird's-eye view */}
       <Billboard position={[0, 13.5, 0]}>
         <mesh ref={bannerRef}>

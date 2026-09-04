@@ -6,7 +6,50 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 import { RotatingCity, SceneControls } from "./CameraRig";
-import { CityScene } from "./MiniCityScene";
+import { CityScene, CITY_ROTATION_Y } from "./MiniCityScene";
+import { DEBUG_TOP_VIEW, GRID_SIZE } from "./DebugGrid";
+
+/**
+ * TEMPORARY: parks the camera straight above the city for grid screenshots.
+ * Height is solved from the FOV so the whole grid just fits the frame, and the
+ * up-vector is moved off +Y — looking straight down it would be parallel to
+ * the view direction and lookAt would have no way to orient the camera.
+ */
+function TopDownCamera({ fov = 25 }: { fov?: number }) {
+  const get = useThree((state) => state.get);
+
+  useEffect(() => {
+    const cam = get().camera;
+    if (!(cam instanceof THREE.PerspectiveCamera)) return;
+
+    const prev = {
+      up: cam.up.clone(),
+      position: cam.position.clone(),
+      fov: cam.fov,
+    };
+
+    // Half the grid must fit in half the vertical FOV, plus a little margin.
+    const height = (GRID_SIZE / 2 / Math.tan((fov / 2) * (Math.PI / 180))) * 1.1;
+    // Orient the shot so cell 1 lands top-left, 400 bottom-right and the digits
+    // read upright. This is the city's local +X: feeding lookAt the -Z axis
+    // (the intuitive "north up") came out rotated a quarter turn on screen, so
+    // this is the empirically correct axis, confirmed against a capture.
+    cam.up.set(Math.cos(CITY_ROTATION_Y), 0, -Math.sin(CITY_ROTATION_Y));
+    cam.position.set(0, height, 0);
+    cam.fov = fov;
+    cam.lookAt(0, 0, 0);
+    cam.updateProjectionMatrix();
+
+    return () => {
+      cam.up.copy(prev.up);
+      cam.position.copy(prev.position);
+      cam.fov = prev.fov;
+      cam.updateProjectionMatrix();
+    };
+  }, [get, fov]);
+
+  return null;
+}
 
 /**
  * Dev helper: logs world-space coordinates of clicks on the ground plane.
@@ -86,6 +129,9 @@ export function CityCanvas({
     <div ref={wrapRef} className="h-full w-full">
       <Canvas
         frameloop={active ? "always" : "never"}
+        // Stay at 1x even fullscreen. The scene runs ~20 dynamic lights through
+        // meshStandardMaterial, so cost scales with pixels × lights — and going
+        // fullscreen already multiplies the pixel count several times over.
         dpr={1}
         camera={{ position: [78, 88, 98], fov: 25, near: 0.1, far: 500 }}
         className="h-full w-full !bg-transparent"
@@ -99,12 +145,14 @@ export function CityCanvas({
       >
         {/* <ClickLogger /> */}
 
-        <RotatingCity enabled={!explore}>
+        <RotatingCity enabled={!explore && !DEBUG_TOP_VIEW}>
           <CityScene exploreMode={explore} onNavigate={onNavigate} />
         </RotatingCity>
         {/* Orbit preview only when NOT exploring; the follow camera takes over
-            in explore mode. */}
-        {!explore && <SceneControls />}
+            in explore mode. The debug top-down replaces the orbit controls
+            outright — otherwise they'd fight over the camera every frame. */}
+        {!explore && !DEBUG_TOP_VIEW && <SceneControls />}
+        {!explore && DEBUG_TOP_VIEW && <TopDownCamera />}
       </Canvas>
     </div>
   );

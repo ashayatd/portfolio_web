@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   ArrowRight,
   Download,
@@ -14,6 +14,9 @@ import {
 import { CityCanvas } from "./simpleWorld/CityCanvas";
 import { getExperience, PROJECT_COUNT } from "@/lib/profile";
 import { useSmoothScroll } from "@/providers/SmoothScrollProvider";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { subscribeCell, type CellInfo } from "./simpleWorld/DebugGrid";
+import { subscribeNearby, type Zone } from "./simpleWorld/Proximity";
 import { RiNextjsFill, RiReactjsLine } from "react-icons/ri";
 import {
   SiDocker,
@@ -25,18 +28,144 @@ import {
 } from "react-icons/si";
 import { FaAws } from "react-icons/fa";
 
+// ─── Proximity prompt ───────────────────────────────────────────────
+// Walking up to a landmark is how you open a section at street level: the
+// pointer is locked, so a click means "capture the mouse", not "follow this".
+function ProximityPrompt({ onEnter }: { onEnter: (id: string) => void }) {
+  const [zone, setZone] = useState<Zone | null>(null);
+
+  useEffect(() => subscribeNearby(setZone), []);
+
+  useEffect(() => {
+    if (!zone) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "KeyE") {
+        e.preventDefault();
+        document.exitPointerLock?.();
+        onEnter(zone.id);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zone, onEnter]);
+
+  if (!zone) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-24 z-[61] flex justify-center">
+      <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white/95 px-5 py-3 shadow-lg backdrop-blur">
+        <kbd className="rounded-md border border-slate-300 bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">
+          E
+        </kbd>
+        <span className="text-sm text-slate-600">
+          Open <b className="text-slate-900">{zone.label}</b>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Cell readout (TEMPORARY, pairs with the DebugGrid) ─────────────
+// Kept as its own component with its own state: the character's position
+// updates constantly, and holding it in Hero would re-render the entire 3D
+// scene on every step.
+function CellReadout() {
+  const [info, setInfo] = useState<CellInfo | null>(null);
+  useEffect(() => subscribeCell(setInfo), []);
+  if (!info) return null;
+
+  return (
+    <div className="absolute right-5 top-20 z-[61] rounded-xl border border-slate-200 bg-white/90 px-4 py-3 font-mono text-sm text-slate-700 shadow-sm backdrop-blur">
+      <p className="text-lg font-bold text-slate-900">
+        Cell {info.cell ?? "—"}
+      </p>
+      <p className="text-xs text-slate-500">
+        x {info.x.toFixed(1)} · z {info.z.toFixed(1)}
+      </p>
+      <p
+        className={`text-xs font-semibold ${
+          info.blocked ? "text-red-600" : "text-emerald-600"
+        }`}
+      >
+        {info.blocked ? "INSIDE a solid volume" : "walkable"}
+      </p>
+    </div>
+  );
+}
+
 // ─── Hero ───────────────────────────────────────────────────────────
 
 export function Hero() {
   const [explore, setExplore] = useState(false);
-  const { scrollTo } = useSmoothScroll();
+  const { scrollTo, setScrollLock } = useSmoothScroll();
+  // Walking the city needs a keyboard + a lockable pointer, so it is desktop
+  // only (Tailwind `lg` and up).
+  const isDesktop = useIsDesktop();
 
   // Clicking a billboard in the 3D city navigates to that section
   // (and exits explore mode if we're walking around).
-  const navigate = (id: string) => {
-    setExplore(false);
-    scrollTo(`#${id}`);
-  };
+  //
+  // Scrolling cannot happen in the same breath as closing the city: opening it
+  // called lenis.stop(), and the cleanup that restarts it only runs once React
+  // has committed setExplore(false). A scrollTo issued before then is handed to
+  // a stopped Lenis and silently dropped — you'd exit but never move. So park
+  // the target and let the effect below run it once the overlay has torn down.
+  const pendingScroll = useRef<string | null>(null);
+
+  const navigate = useCallback(
+    (id: string) => {
+      if (!explore) {
+        scrollTo(`#${id}`);
+        return;
+      }
+      pendingScroll.current = id;
+      setExplore(false);
+    },
+    [explore, scrollTo],
+  );
+
+  useEffect(() => {
+    if (explore) return;
+    const target = pendingScroll.current;
+    if (!target) return;
+    pendingScroll.current = null;
+    scrollTo(`#${target}`);
+  }, [explore, scrollTo]);
+
+  // While the overlay is open: freeze the page behind it, let Esc close it
+  // (the browser eats the first Esc to release pointer lock, so the second one
+  // closes), and bail out entirely if the viewport shrinks below desktop.
+  useEffect(() => {
+    if (!explore) return;
+    setScrollLock(true);
+
+    // Hide the global navbar — it overlaps the city and can't be out-stacked.
+    // The overlay lives inside a flex item carrying z-10, which opens a
+    // stacking context its own z-60 can never escape, so the z-50 header wins
+    // no matter what. Set the style directly rather than via a stylesheet
+    // class: it applies the moment this runs, with no CSS rebuild involved.
+    const header = document.querySelector<HTMLElement>("[data-site-header]");
+    const previousDisplay = header?.style.display ?? "";
+    if (header) header.style.display = "none";
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.pointerLockElement) setExplore(false);
+    };
+    const tooSmall = window.matchMedia("(max-width: 1023px)");
+    const onResize = () => {
+      if (tooSmall.matches) setExplore(false);
+    };
+
+    window.addEventListener("keydown", onKey);
+    tooSmall.addEventListener("change", onResize);
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      tooSmall.removeEventListener("change", onResize);
+      if (header) header.style.display = previousDisplay;
+      setScrollLock(false);
+    };
+  }, [explore, setScrollLock]);
 
   // Compute experience on the client to keep server/client markup in sync
   // across month boundaries (avoids hydration mismatch).
@@ -50,7 +179,10 @@ export function Hero() {
     <section className="w-full px-4 sm:px-8 lg:px-12 pt-24 lg:pt-28 pb-16 bg-[linear-gradient(154deg,#ffffff,#032dfc1c)]">
       <div className="relative w-full flex flex-col lg:flex-row mt-6 lg:mt-[3rem] items-center">
         {/* Left Content */}
-        <div className="w-full lg:w-[50%] flex flex-col gap-6 sm:gap-8 z-10">
+        {/* No z-index here: as a flex item it would open a stacking context,
+            trapping the fullscreen city overlay's z-60 below the z-50 navbar.
+            It's the only flex child, so it has nothing to stack against. */}
+        <div className="w-full lg:w-[50%] flex flex-col gap-6 sm:gap-8">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 w-fit">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -84,13 +216,16 @@ export function Hero() {
               Download Resume
               <Download size={16} />
             </button>
-            {/* <button
-              onClick={() => setExplore(true)}
-              className="flex font-bold items-center gap-1 text-slate-600 hover:text-slate-900 text-sm weight-600 transition-colors cursor-pointer"
-            >
-              Explore Campus
-              <ArrowRight size={14} />
-            </button> */}
+            {/* Desktop only — walking the city needs WASD + a mouse. */}
+            {isDesktop && (
+              <button
+                onClick={() => setExplore(true)}
+                className="flex items-center justify-center gap-2 cursor-pointer bg-white hover:bg-indigo-50 text-indigo-600 px-6 py-3 rounded-xl text-sm font-semibold border border-indigo-200 transition-colors"
+              >
+                Explore City
+                <Rocket size={16} />
+              </button>
+            )}
           </div>
 
           {/* Stats */}
@@ -207,20 +342,33 @@ export function Hero() {
             {explore && (
               <>
                 <button
-                  onClick={() => setExplore(false)}
+                  onClick={() => {
+                    document.exitPointerLock?.();
+                    setExplore(false);
+                  }}
                   aria-label="Close campus view"
                   className="absolute right-5 top-5 z-[61] flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-white"
                 >
                   <X size={16} />
                   Close
                 </button>
+                <CellReadout />
+                <ProximityPrompt onEnter={navigate} />
                 <div className="absolute bottom-5 left-5 z-[61] rounded-xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600 shadow-sm backdrop-blur">
                   <p>
-                    <b className="text-slate-900">WASD</b> — Move
+                    <b className="text-slate-900">Click</b> — Capture mouse ·{" "}
+                    <b className="text-slate-900">Mouse</b> — Look
                   </p>
                   <p>
-                    <b className="text-slate-900">Shift</b> — Run ·{" "}
-                    <b className="text-slate-900">Mouse</b> — Look
+                    <b className="text-slate-900">WASD</b> — Move ·{" "}
+                    <b className="text-slate-900">Shift</b> — Run
+                  </p>
+                  <p>
+                    <b className="text-slate-900">E</b> — Open a nearby building
+                  </p>
+                  <p>
+                    <b className="text-slate-900">Esc</b> — Release mouse, again
+                    to exit
                   </p>
                 </div>
               </>

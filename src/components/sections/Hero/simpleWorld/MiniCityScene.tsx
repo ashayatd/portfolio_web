@@ -1,7 +1,14 @@
 "use client";
 import { useThree } from "@react-three/fiber";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 // import { ScrollProgressBar, useScrollController } from "./ScrollController";
@@ -25,7 +32,17 @@ import { RoadNetwork } from "./RoadBox";
 import { Foundation } from "./Foundations";
 import { Garden } from "./GardenRect";
 import { BuildingBillboard } from "./InfoBillboard";
-import { Character } from "./Character/Character";
+import { Character, GROUND_NAME } from "./Character/Character";
+import { DebugGrid, cellFromLocal, publishCell } from "./DebugGrid";
+import {
+  ObstacleCollector,
+  SOLID,
+  solidRadius,
+  type Bounds,
+} from "./Obstacles";
+import { StreetDetail } from "./StreetDetail";
+import { InfoBoards } from "./InfoBoard";
+import { nearestZone, publishNearby, resetNearby } from "./Proximity";
 import { CharacterCamera } from "./Character/CharacterCamera";
 
 /* ========================= */
@@ -239,7 +256,14 @@ function RoadLine({
   return (
     <group position={position} rotation={[0, rotation, 0]}>
       {Array.from({ length: segments }).map((_, i) => (
-        <mesh key={i} position={[0, 0, i * totalStep - offset - offSetValue]}>
+        <mesh
+          key={i}
+          position={[
+            0,
+            ROAD_MARK_LIFT,
+            i * totalStep - offset - offSetValue,
+          ]}
+        >
           <boxGeometry args={[width, 0.02, segmentLength]} />
           <meshStandardMaterial color={color} toneMapped={false} />
         </mesh>
@@ -457,8 +481,45 @@ const benches = benchSpots.map(([x, z]) => ({
 /* BASE PLATFORM (like the image) */
 /* ========================= */
 
+/* Asphalt, deliberately mid-grey rather than near-black: the plots are pale
+   (#eceaea / #dad3d3) so this separates cleanly while keeping the city light. */
+const ROAD_COLOR = "#8F959D";
+/** Slab top is -0.5; sit the road 3cm proud of it to stay out of z-fighting. */
+const ROAD_SURFACE_Y = -0.47;
+/** Lane paint has to clear the road surface in turn. */
+const ROAD_MARK_LIFT = 0.05;
+/**
+ * Planter beds sit on the raised plots (top 0.13). The Garden's dirt bed hangs
+ * 0.06 below its own origin, so this rests it on the plot instead of hovering
+ * — the old 0.6 left a 0.47 gap, which is what read as a tall grass platform.
+ */
+const GARDEN_Y = 0.19;
+
+/* ---- Opening shot ----------------------------------------------------
+   You arrive on the south-east diagonal road facing the monument. The four
+   buildings sit on the axes, so a diagonal approach frames two of them at
+   once: Projects (-x) falls left of frame, Experience (-z) right, and Skills
+   and Technology stay behind the camera. Distance is 7.78 — close enough for
+   the monument to read, and clear of its collision box at 4.2.            */
+const SPAWN_POS: [number, number, number] = [5.5, GROUND_Y, 5.5];
+/** forward = (sin, cos) = (-0.707, -0.707): straight at the monument. */
+const SPAWN_YAW = (5 * Math.PI) / 4;
+/** Gentle downward tilt — leaves the towers their full height in frame. */
+const SPAWN_PITCH = 0.24;
+
+/** TEMPORARY: numbered collision-debug grid. Flip to true while tuning
+ *  collision — it also switches on the live cell readout. */
+const DEBUG_GRID = false;
+
+/**
+ * Yaw applied to the whole city. Exported so the debug top-down camera can
+ * match it and photograph the grid square-on instead of tilted.
+ */
+export const CITY_ROTATION_Y = -0.62;
+
 function BasePlatform() {
   const PLATFORM_SIZE = 65;
+  const RADIUS = 1.5;
   const FOUNDATION_WIDTH = 8;
   const FOUNDATION_DEPTH = 17;
   const OFFSET = 20;
@@ -518,7 +579,9 @@ function BasePlatform() {
   ];
 
   return (
-    <group>
+    // Named so the character's ground probe can raycast against the walkable
+    // surfaces only — without it he'd happily stand on a treetop.
+    <group name={GROUND_NAME}>
       {/* Edge foundations */}
       {foundations.map((f, i) => (
         <group key={`edge-${i}`} position={f.position} rotation={f.rotation}>
@@ -550,12 +613,27 @@ function BasePlatform() {
       <RoundedBox
         position={[0, -2, 0]}
         args={[PLATFORM_SIZE, 3, PLATFORM_SIZE]}
-        radius={1.5}
+        radius={RADIUS}
         smoothness={4}
         receiveShadow
       >
         <meshStandardMaterial color="#ffffff" roughness={0.95} />
       </RoundedBox>
+
+      {/* Road surface. The slab underneath stays white so its rounded rim
+          still reads as a kerb around the city; this only recolours the top.
+          Sized to the slab's flat area (radius eats 1.5 per side) and lifted
+          clear of it — a hair above would z-fight from the docked camera. */}
+      <mesh
+        position={[0, ROAD_SURFACE_Y, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+      >
+        <planeGeometry
+          args={[PLATFORM_SIZE - RADIUS * 2, PLATFORM_SIZE - RADIUS * 2]}
+        />
+        <meshStandardMaterial color={ROAD_COLOR} roughness={1} />
+      </mesh>
     </group>
   );
 }
@@ -576,19 +654,68 @@ export function CityScene({
   onNavigate?: (id: string) => void;
 }) {
   const characterRef = useRef<THREE.Group>(null);
-  const yawRef = useRef(0); // camera azimuth, driven by mouse-look
+  // Camera azimuth, driven by mouse-look. See SPAWN_YAW.
+  const yawRef = useRef(SPAWN_YAW);
+  // Camera elevation. Positive looks down on the character; pushing it
+  // negative tilts the view up the towers.
+  const pitchRef = useRef(SPAWN_PITCH);
   const { gl } = useThree();
 
-  // Mouse-look: horizontal mouse movement orbits the camera (and WASD follows).
+  // While walking around, a click means "capture the mouse" — not "jump to a
+  // section", which would throw you out of the city on the first look-around.
+  const navigate = exploreMode ? undefined : onNavigate;
+
+  // Collision, measured from the scene on mount. Seeded with the old
+  // hand-written boxes so there is never a frame with no collision at all.
+  const [obstacles, setObstacles] = useState<Bounds[]>(BUILDING_BOUNDS);
+
+  // One place the character's movement fans out from: proximity first (it's a
+  // real feature), debug reporting second (it isn't).
+  const handlePosition = useCallback(
+    (x: number, z: number, blocked: boolean) => {
+      publishNearby(nearestZone(x, z));
+      if (DEBUG_GRID) publishCell({ cell: cellFromLocal(x, z), x, z, blocked });
+    },
+    [],
+  );
+
+  // Leaving the city must clear the zone, or the prompt reappears on re-entry.
+  useEffect(() => {
+    if (!exploreMode) resetNearby();
+  }, [exploreMode]);
+
+  // Mouse-look: click the canvas to capture the cursor, then horizontal mouse
+  // movement orbits the camera (and WASD moves relative to it). Esc releases.
   useEffect(() => {
     if (!exploreMode) return;
     const el = gl.domElement;
+
+    // Clamped so you can crane up at the towers without flipping over the top
+    // or scraping the camera along the road.
+    const MIN_PITCH = -0.55;
+    const MAX_PITCH = 1.2;
+
     const onMove = (e: MouseEvent) => {
-      // Only turn while dragging OR pointer-locked feels heavy; use raw move.
-      yawRef.current -= e.movementX * 0.0035;
+      if (document.pointerLockElement !== el) return;
+      yawRef.current -= e.movementX * 0.0025;
+      pitchRef.current = Math.min(
+        MAX_PITCH,
+        Math.max(MIN_PITCH, pitchRef.current + e.movementY * 0.0025),
+      );
     };
-    el.addEventListener("mousemove", onMove);
-    return () => el.removeEventListener("mousemove", onMove);
+    const onClick = () => {
+      if (document.pointerLockElement === el) return;
+      // Chrome rejects a re-lock that happens too soon after an exit.
+      void Promise.resolve(el.requestPointerLock()).catch(() => {});
+    };
+
+    el.addEventListener("click", onClick);
+    document.addEventListener("mousemove", onMove);
+    return () => {
+      el.removeEventListener("click", onClick);
+      document.removeEventListener("mousemove", onMove);
+      if (document.pointerLockElement === el) document.exitPointerLock();
+    };
   }, [exploreMode, gl]);
 
   return (
@@ -609,7 +736,7 @@ export function CityScene({
         color="#dce8ff"
       />
 
-      <group rotation={[0, -0.62, 0]} position={[0, 0, 0]}>
+      <group rotation={[0, CITY_ROTATION_Y, 0]} position={[0, 0, 0]}>
         {/* Lighting */}
         {/* Base Platform */}
         <BasePlatform />
@@ -671,48 +798,66 @@ export function CityScene({
         />
 
         <Garden
-          position={[-10, 0.6, 0]}
+          position={[-10, GARDEN_Y, 0]}
           rotation={[0, Math.PI / 1, 0]}
           width={1.2}
           length={6}
         />
 
         <Garden
-          position={[10, 0.6, 0]}
+          position={[10, GARDEN_Y, 0]}
           rotation={[0, Math.PI / 1, 0]}
           width={1.2}
           length={6}
         />
 
         <Garden
-          position={[0, 0.6, -10]}
+          position={[0, GARDEN_Y, -10]}
           rotation={[0, Math.PI / 2, 0]}
           width={1.2}
           length={6}
         />
 
         <Garden
-          position={[0, 0.6, 10]}
+          position={[0, GARDEN_Y, 10]}
           rotation={[0, Math.PI / 2, 0]}
           width={1.2}
           length={6}
         />
+
+        {/* Sits outside the exploreMode branch so the docked bird's-eye view
+            shows it too — that view is what makes a top-down reference shot
+            possible. It lives inside the rotated city group, so the cells stay
+            locked to the buildings no matter how far the city has spun. */}
+        {/* Measures every {...SOLID} object once mounted, so collision and
+            the debug tint both describe the real geometry. */}
+        <ObstacleCollector onCollect={setObstacles} rescanKey={exploreMode} />
+        {DEBUG_GRID && <DebugGrid bounds={obstacles} />}
+
+        {/* Drains, bollards and bins — a few pixels each from the docked
+            camera, so they only exist at eye level. */}
+        {exploreMode && <StreetDetail />}
+
+        {/* Park-style interpretation signs — only legible on foot. */}
+        {exploreMode && <InfoBoards />}
 
         {exploreMode && (
-          <>
+          <Suspense fallback={null}>
             <CharacterCamera
               targetRef={characterRef}
               yawRef={yawRef}
+              pitchRef={pitchRef}
               isActive={exploreMode}
             />
             <Character
               ref={characterRef}
-              position={[0, 0, 12]}
+              position={SPAWN_POS}
               isActive={exploreMode}
               yawRef={yawRef}
-              buildingBounds={BUILDING_BOUNDS}
+              buildingBounds={obstacles}
+              onPosition={handlePosition}
             />
-          </>
+          </Suspense>
         )}
 
         {/* Road Network */}
@@ -728,9 +873,10 @@ export function CityScene({
           items={["2+ Years", "MERN Stack", "Backend", "REST APIs"]}
           accent="#8B5CF6"
           targetId="experience"
-          onNavigate={onNavigate}
+          onNavigate={navigate}
+          interactive={!exploreMode}
         >
-          <group position={[0, 0, -21]}>
+          <group position={[0, 0, -21]} {...SOLID}>
             <BuildingA width={5.2} height={11} depth={5.2} floors={4} />
           </group>
         </BuildingBillboard>
@@ -742,9 +888,10 @@ export function CityScene({
           items={["Frontend", "Backend", "DevOps"]}
           accent="#5A8A5A"
           targetId="tech"
-          onNavigate={onNavigate}
+          onNavigate={navigate}
+          interactive={!exploreMode}
         >
-          <group position={[0, 5.1, 21]}>
+          <group position={[0, 5.1, 21]} {...SOLID}>
             <BuildingB />
           </group>
         </BuildingBillboard>
@@ -756,9 +903,10 @@ export function CityScene({
           items={["7+ Shipped", "Production", "Full-Stack", "Web Apps"]}
           accent="#69b9fa"
           targetId="projects"
-          onNavigate={onNavigate}
+          onNavigate={navigate}
+          interactive={!exploreMode}
         >
-          <group position={[-21, 1.6, 0]}>
+          <group position={[-21, 1.6, 0]} {...SOLID}>
             <BuildingC />
           </group>
         </BuildingBillboard>
@@ -777,15 +925,20 @@ export function CityScene({
           ]}
           accent="#f4a261"
           targetId="skills"
-          onNavigate={onNavigate}
+          onNavigate={navigate}
+          interactive={!exploreMode}
         >
-          <group position={[21, 3, -2.5]} rotation={[0, 4.7, 0]}>
+          <group position={[21, 3, -2.5]} rotation={[0, 4.7, 0]} {...SOLID}>
             <BuildingD />
           </group>
         </BuildingBillboard>
 
-        <group position={[0, -1.5, 0]}>
-          <Fountain targetId="about" onNavigate={onNavigate} />
+        <group position={[0, -1.5, 0]} {...SOLID}>
+          <Fountain
+            targetId="about"
+            onNavigate={navigate}
+            interactive={!exploreMode}
+          />
         </group>
         {/* <hemisphereLight
         color="#ffffff"
@@ -810,28 +963,31 @@ export function CityScene({
             key={`lamp-${i}`}
             position={l.position}
             rotation={[0, l.rotation, 0]}
+            {...solidRadius(0.35)}
           >
-            <StreetLamp />
+            <StreetLamp lit={!exploreMode} />
           </group>
         ))}
         {/* ===================================== */}
         {/* TREES — clusters confined to the 4 corner triangles */}
         {/* ===================================== */}
         {trees.map((t, i) => (
-          <Tree key={i} position={t.position} />
+          <group key={i} {...solidRadius(0.7)}>
+            <Tree position={t.position} />
+          </group>
         ))}
         {buildingTrees.map((t, i) => (
-          <Tree key={`btree-${i}`} position={t.position} scale={t.scale} />
+          <group key={`btree-${i}`} {...solidRadius(0.7)}>
+            <Tree position={t.position} scale={t.scale} />
+          </group>
         ))}
         {/* ===================================== */}
         {/* BENCHES — 4, set back from the plaza, facing the monument */}
         {/* ===================================== */}
         {benches.map((b, i) => (
-          <Bench
-            key={`bench-${i}`}
-            position={b.position}
-            rotation={[0, b.rotation, 0]}
-          />
+          <group key={`bench-${i}`} {...SOLID}>
+            <Bench position={b.position} rotation={[0, b.rotation, 0]} />
+          </group>
         ))}
         {/* ===================================== */}
         {/* CAMERA CONTROLS                       */}
