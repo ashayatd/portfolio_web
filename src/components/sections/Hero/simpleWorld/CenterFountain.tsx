@@ -105,7 +105,7 @@ function useNameTexture() {
     // line overran it — the ends were being cut off ("ULL STACK DEVELOPE").
     ctx.fillStyle = "#5a6573";
     ctx.font = "600 86px Arial, sans-serif";
-    ["FULL STACK", "DEVELOPER"].forEach((line, i) => {
+    ["FULL-STACK", "AI ENGINEER"].forEach((line, i) => {
       ctx.fillText(line, cx, divY + 110 + i * 104);
     });
 
@@ -242,7 +242,7 @@ function useNameBannerTexture() {
     // ── Subtitle ──
     ctx.fillStyle = "#5a6573";
     ctx.font = "700 88px Arial, sans-serif";
-    ctx.fillText("FULL STACK DEVELOPER", cx, 565);
+    ctx.fillText("FULL-STACK AI ENGINEER", cx, 565);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.anisotropy = 1;

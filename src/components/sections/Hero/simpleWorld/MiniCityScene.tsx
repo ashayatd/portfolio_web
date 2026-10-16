@@ -870,7 +870,7 @@ export function CityScene({
         <BuildingBillboard
           position={[0, 6, -34]}
           title="Experience"
-          items={["2+ Years", "MERN Stack", "Backend", "REST APIs"]}
+          items={["3+ Years", "Software Developer", "Full-Stack + AI", "End to End"]}
           accent="#8B5CF6"
           targetId="experience"
           onNavigate={navigate}
@@ -885,7 +885,7 @@ export function CityScene({
         <BuildingBillboard
           position={[0, 6, 34]}
           title="Technology"
-          items={["Frontend", "Backend", "DevOps"]}
+          items={["Full-Stack", "GenAI", "Cloud", "DevOps"]}
           accent="#5A8A5A"
           targetId="tech"
           onNavigate={navigate}
@@ -900,7 +900,7 @@ export function CityScene({
         <BuildingBillboard
           position={[-34, 6, 0]}
           title="Projects"
-          items={["7+ Shipped", "Production", "Full-Stack", "Web Apps"]}
+          items={["8 Shipped", "90s → 300ms", "RAG Copilot", "Voice Agent"]}
           accent="#69b9fa"
           targetId="projects"
           onNavigate={navigate}
@@ -915,14 +915,7 @@ export function CityScene({
         <BuildingBillboard
           position={[34, 6, 0]}
           title="Skills"
-          items={[
-            "React",
-            "Node.js",
-            "MongoDB",
-            "Express",
-            "Next.js",
-            "Docker",
-          ]}
+          items={["Node.js", "Next.js", "Python", "LangGraph"]}
           accent="#f4a261"
           targetId="skills"
           onNavigate={navigate}
