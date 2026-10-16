@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import * as THREE from "three";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
+import { subscribeNearby } from "./Proximity";
 
 interface InfoBillboardProps {
   /** World position of the billboard (placed beside its building). */
@@ -21,6 +22,8 @@ interface InfoBillboardProps {
   width?: number;
   /** Controlled hover state — driven by the building, not the card itself. */
   hovered?: boolean;
+  /** Fade the card out — set while the character stands in its building's zone. */
+  faded?: boolean;
 }
 
 // Card pixel dimensions (drives both the canvas and the plane aspect ratio).
@@ -199,6 +202,7 @@ export function InfoBillboard({
   accent = "#6ea8d8",
   width = 12,
   hovered = false,
+  faded = false,
 }: InfoBillboardProps) {
   const texture = useInfoTexture(title, items, subtitle, accent);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -210,6 +214,20 @@ export function InfoBillboard({
   useFrame(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
+
+    // The card draws on top of everything (depthTest off), so at street level
+    // it would sit over the sign you walked up to read. Fade it while you're
+    // in its zone; hide it fully once faded so it costs nothing.
+    const material = mesh.material as THREE.MeshBasicMaterial;
+    const targetOpacity = faded ? 0 : 1;
+    if (material.opacity !== targetOpacity) {
+      material.opacity =
+        Math.abs(material.opacity - targetOpacity) < 0.01
+          ? targetOpacity
+          : THREE.MathUtils.lerp(material.opacity, targetOpacity, 0.12);
+    }
+    mesh.visible = material.opacity > 0;
+
     const target = hovered ? 1.3 : 1;
     if (Math.abs(mesh.scale.x - target) < 0.001) {
       if (mesh.scale.x !== target) mesh.scale.set(target, target, 1);
@@ -258,6 +276,13 @@ export function BuildingBillboard({
   interactive?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
+  const [inZone, setInZone] = useState(false);
+
+  // Zones are only published while exploring, so the docked view never fades.
+  useEffect(
+    () => subscribeNearby((zone) => setInZone(!!targetId && zone?.id === targetId)),
+    [targetId],
+  );
 
   const handlers = interactive
     ? {
@@ -281,7 +306,11 @@ export function BuildingBillboard({
   return (
     <group {...handlers}>
       {children}
-      <InfoBillboard {...billboard} hovered={hovered && interactive} />
+      <InfoBillboard
+        {...billboard}
+        hovered={hovered && interactive}
+        faded={inZone}
+      />
     </group>
   );
 }

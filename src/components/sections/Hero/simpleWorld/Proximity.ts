@@ -135,14 +135,16 @@ export function nearestZone(x: number, z: number): Zone | null {
 // re-render the whole 3D tree.
 
 type Listener = (zone: Zone | null) => void;
-let listener: Listener | null = null;
+// Several subscribers: the on-screen prompt, plus each building's billboard
+// (which fades out while you stand in its zone).
+const listeners = new Set<Listener>();
 let current: Zone | null = null;
 
 export function subscribeNearby(fn: Listener) {
-  listener = fn;
+  listeners.add(fn);
   fn(current);
   return () => {
-    if (listener === fn) listener = null;
+    listeners.delete(fn);
   };
 }
 
@@ -150,11 +152,11 @@ export function subscribeNearby(fn: Listener) {
 export function publishNearby(zone: Zone | null) {
   if (zone?.id === current?.id) return;
   current = zone;
-  listener?.(zone);
+  listeners.forEach((fn) => fn(zone));
 }
 
 /** Clears state when leaving the city, so a stale prompt can't reappear. */
 export function resetNearby() {
   current = null;
-  listener?.(null);
+  listeners.forEach((fn) => fn(null));
 }
