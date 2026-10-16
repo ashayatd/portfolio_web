@@ -9,7 +9,7 @@ const skills = [
       </svg>
     ),
     title: "Frontend",
-    items: "React, Next.js, TypeScript, Tailwind CSS",
+    items: "React+Vite, Next.js, Redux, Tailwind CSS",
   },
   {
     icon: (
@@ -21,7 +21,7 @@ const skills = [
       </svg>
     ),
     title: "Backend",
-    items: "Node.js, Express, FastAPI, GraphQL",
+    items: "Node.js, Express, Python, FastAPI, Django",
   },
   {
     icon: (
@@ -32,7 +32,7 @@ const skills = [
       </svg>
     ),
     title: "Data & Storage",
-    items: "MongoDB, Redis, Firebase, PostgreSQL",
+    items: "MongoDB, MySQL, PostgreSQL, Redis",
   },
   {
     icon: (
@@ -45,7 +45,7 @@ const skills = [
       </svg>
     ),
     title: "Realtime & Messaging",
-    items: "Socket.IO, Redis Pub/Sub, WebRTC",
+    items: "Socket.IO, WebSockets, BullMQ, Agora",
   },
   {
     icon: (
@@ -54,7 +54,7 @@ const skills = [
       </svg>
     ),
     title: "DevOps & Tools",
-    items: "Docker, Git, CI/CD, Render, GCP, AWS",
+    items: "AWS, Docker, Kubernetes, GitHub Actions, GCP",
   },
 ];
 

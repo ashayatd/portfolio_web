@@ -4,18 +4,17 @@ import { motion, type Variants } from "framer-motion";
 import {
   Code2,
   Layers,
-  GraduationCap,
+  Rocket,
   MapPin,
   ArrowUpRight,
 } from "lucide-react";
 import { FiGithub, FiLinkedin, FiMail } from "react-icons/fi";
-import { getExperience, PROJECT_COUNT } from "@/lib/profile";
+import { PROJECT_COUNT } from "@/lib/profile";
 
 const stats = [
-  // { icon: Rocket, value: getExperience().short, label: "Years Experience" },
-  { icon: Code2, value: PROJECT_COUNT, label: "Production Projects" },
-  { icon: Layers, value: "15+", label: "Technologies Used" },
-  { icon: GraduationCap, value: "100%", label: "Commitment To Learning" },
+  { icon: Code2, value: PROJECT_COUNT, label: "Products Shipped" },
+  { icon: Layers, value: "40+", label: "Technologies" },
+  { icon: Rocket, value: "3+", label: "Years Experience" },
 ];
 
 const contacts = [
@@ -28,13 +27,13 @@ const contacts = [
   {
     icon: FiLinkedin,
     label: "LinkedIn",
-    value: "linkedin.com/in/ashay-tamrakar",
-    href: "https://www.linkedin.com/in/ashay-tamrakar-b7a993167",
+    value: "linkedin.com/in/ashayatd",
+    href: "https://www.linkedin.com/in/ashayatd",
   },
   {
     icon: FiMail,
     label: "Email",
-    value: "ashaytamrakar@gmail.com",
+    value: "ashay.tamrakar@gmail.com",
     href: "mailto:ashay.tamrakar@gmail.com",
   },
 ];
@@ -81,8 +80,9 @@ export default function About() {
             </h2>
 
             <p className="mt-5 text-base leading-relaxed text-slate-500 sm:text-lg">
-              Full-stack developer building modern web applications using React, Node.js,
-              and scalable backend architectures.
+              3+ years owning products end to end, with full-stack depth in
+              Node.js and Next.js. Now building RAG and agentic AI systems in
+              Python.
             </p>
 
             <p className="mt-5 leading-relaxed text-slate-600">
@@ -123,7 +123,7 @@ export default function About() {
                   <p className="text-base font-bold text-slate-900">
                     Ashay Tamrakar
                   </p>
-                  <p className="text-sm text-slate-500">Full Stack Developer</p>
+                  <p className="text-sm text-slate-500">Full-Stack AI Engineer</p>
                 </div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
                   <MapPin size={13} className="text-indigo-500" />

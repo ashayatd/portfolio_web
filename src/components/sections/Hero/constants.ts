@@ -2,15 +2,17 @@ export const HERO_TOTAL_FRAMES = 70;
 
 export const HERO_PROFILE = {
   name: "ASHAY TAMRAKAR",
-  role: "FULL STACK DEVELOPER",
+  role: "FULL-STACK AI ENGINEER",
   image: "/your-image.jpg",
   skills: [
     "React",
     "Next.js",
     "TypeScript",
     "Node.js",
+    "Python",
+    "LangGraph",
     "MongoDB",
-    "MY-SQL",
+    "MySQL",
     "Docker",
     "AWS",
   ],

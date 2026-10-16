@@ -41,6 +41,9 @@ const STACK = [
   "BullMQ",
   "Socket.IO",
   "Docker",
+  "Python",
+  "LangGraph",
+  "Kubernetes",
 ];
 
 // ─── Proximity prompt ───────────────────────────────────────────────
@@ -202,7 +205,9 @@ export function Hero() {
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 w-fit max-w-full">
             <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
             <span className="text-slate-600 text-[10px] sm:text-xs font-semibold uppercase tracking-wide sm:tracking-wider">
-              Full Stack Engineer · 3 Yrs · Node.js + Next.js
+              Full-Stack AI Engineer · 3+ Yrs
+              {/* Dropped below 375px so the badge stays on one line. */}
+              <span className="max-[375px]:hidden"> · Node.js + Python</span>
             </span>
           </div>
 
@@ -210,21 +215,21 @@ export function Hero() {
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-slate-900 leading-[1.1] tracking-tight">
             Ashay Tamrakar<br/>
             <span className="bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-              Full Stack Developer
+              Full-Stack AI Engineer
             </span>
           </h1>
 
           {/* Stack line — the at-a-glance "what I do" signal */}
           <p className="text-indigo-600 font-semibold text-sm sm:text-base tracking-tight">
-            Full Stack · Next.js · Node.js · SQL &amp; NoSQL — and everything in
-            between.
+            Node.js · Next.js · Python · RAG &amp; Agentic AI
           </p>
 
           {/* Subtitle */}
           <p className="text-slate-500 text-base sm:text-lg leading-relaxed max-w-lg">
-            I ship production products end-to-end — 8 client apps where I owned
-            the backend, the admin panel and the deployment. Cut a hotel search
-            API from 90s to 300ms and replaced a monolith with 6 microservices.
+            3+ years owning products end to end — 8 client apps where I owned
+            the backend, the admin panel and the deployment. Full-stack depth in
+            Node.js and Next.js; now building RAG and agentic AI systems in
+            Python.
           </p>
 
           {/* Stack pills */}
@@ -357,9 +362,9 @@ export function Hero() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-gray-900">6</p>
-                  <p className="text-sm text-gray-500">Microservices</p>
-                  <p className="text-xs text-gray-400">Split from a monolith</p>
+                  <p className="text-lg font-semibold text-gray-900">0 / 1,386</p>
+                  <p className="text-sm text-gray-500">RBAC Leaks</p>
+                  <p className="text-xs text-gray-400">Adversarial queries</p>
                 </div>
               </div>
             </div>

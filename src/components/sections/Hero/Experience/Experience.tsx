@@ -19,18 +19,18 @@ import {
   SiMongodb,
   SiDocker,
   SiGithubactions,
-  SiGooglecloud,
   SiRedis,
   SiSocketdotio,
   SiDiagramsdotnet,
+  SiKubernetes,
+  SiPython,
+  SiLanggraph,
+  SiOllama,
 } from "react-icons/si";
 import {
   Network,
   Database,
   Share2,
-  Target,
-  ShieldCheck,
-  Cpu,
   MapPin,
   Building2,
 } from "lucide-react";
@@ -123,21 +123,21 @@ const milestones: Milestone[] = [
   {
     num: "07",
     title: "Production Deployments",
-    desc: "Set up deployments, CI/CD, Docker and monitoring for reliable production releases.",
+    desc: "Shipped Dockerized microservices on Kubernetes with Helm charts and HPA, plus GitHub Actions CI/CD.",
     tech: [
       { Icon: SiDocker, color: "#2496ED", label: "Docker" },
+      { Icon: SiKubernetes, color: "#326CE5", label: "Kubernetes" },
       { Icon: SiGithubactions, color: "#2088FF", label: "CI/CD" },
-      { Icon: SiGooglecloud, color: "#4285F4", label: "Cloud" },
     ],
   },
   {
     num: "08",
-    title: "Engineering Ownership",
-    desc: "Now own products end to end: reliable, maintainable, business-driven software shipped in a fast-paced team.",
+    title: "AI Integration",
+    desc: "Integrated a self-hosted LLM into StackJob via an audited gateway; now building RAG and agentic AI in Python.",
     tech: [
-      { Icon: Target, color: "#6366F1", label: "Reliability" },
-      { Icon: ShieldCheck, color: "#10B981", label: "Maintainable" },
-      { Icon: Cpu, color: "#8B5CF6", label: "Impact" },
+      { Icon: SiPython, color: "#3776AB", label: "Python" },
+      { Icon: SiLanggraph, color: "#1C3C3C", label: "LangGraph" },
+      { Icon: SiOllama, color: "#111827", label: "Ollama" },
     ],
   },
 ];
@@ -193,7 +193,7 @@ export default function SnakeTimeline() {
                     <Building2 size={15} className="text-indigo-500" />
                     Cyber Infrastructure (CIS)
                   </p>
-                  <p className="text-sm text-slate-500">Full-Stack Developer</p>
+                  <p className="text-sm text-slate-500">Software Developer</p>
                 </div>
               </div>
 

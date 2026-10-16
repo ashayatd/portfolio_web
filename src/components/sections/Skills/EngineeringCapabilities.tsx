@@ -10,7 +10,8 @@ import {
   Cloud,
   Network,
   Gauge,
-  Wand2,
+  Sparkles,
+  Radio,
   GitBranch,
   ArrowRight,
   type LucideIcon,
@@ -20,13 +21,23 @@ import {
   SiNextdotjs,
   SiTypescript,
   SiTailwindcss,
+  SiRedux,
   SiNodedotjs,
   SiExpress,
+  SiPython,
+  SiFastapi,
+  SiDjango,
+  SiJsonwebtokens,
   SiMongodb,
+  SiMysql,
   SiPostgresql,
+  SiSqlite,
   SiRedis,
   SiSocketdotio,
+  SiAgora,
   SiDocker,
+  SiKubernetes,
+  SiHelm,
   SiVercel,
   SiNetlify,
   SiDigitalocean,
@@ -37,7 +48,12 @@ import {
   SiFramer,
   SiChartdotjs,
   SiLottiefiles,
+  SiLangchain,
+  SiLanggraph,
+  SiOllama,
+  SiMlflow,
 } from "react-icons/si";
+import { FaAws } from "react-icons/fa";
 import type { IconType } from "react-icons";
 
 type AnyIcon =
@@ -63,6 +79,26 @@ const BullMqIcon = ({
     src="https://user-images.githubusercontent.com/95200/143832033-32e868df-f3b0-4251-97fb-c64809a43d36.png"
   />
 );
+
+// Tools with no brand icon in the set — monogram tile, same fallback as the
+// AI Tools row in the Tech Stack section.
+const mono = (letters: string) =>
+  function Monogram({
+    className,
+    style,
+  }: {
+    className?: string;
+    style?: React.CSSProperties;
+  }) {
+    return (
+      <span
+        className={`${className ?? ""} flex items-center justify-center text-[0.6rem] font-bold leading-none`}
+        style={style}
+      >
+        {letters}
+      </span>
+    );
+  };
 
 interface Tech {
   Icon: AnyIcon;
@@ -95,39 +131,70 @@ const PIPELINE = [
 
 const DOMAINS: Domain[] = [
   {
-    id: "frontend",
-    title: "Frontend Engineering",
-    icon: MonitorSmartphone,
-    caps: ["Component Architecture", "State Management", "Responsive UX", "Performance"],
+    id: "genai",
+    title: "GenAI & Agentic AI",
+    icon: Sparkles,
+    caps: ["RAG (Hybrid BM25 + Vector, RRF)", "Agentic Workflows", "Embeddings & Reranking", "Prompt-Injection Guardrails", "QLoRA Fine-Tuning", "RAG Evaluation"],
     tech: [
-      { Icon: SiReact, name: "React", color: "#61DAFB", desc: "Component-based UI library." },
+      { Icon: SiPython, name: "Python", color: "#3776AB", desc: "Primary language for AI and backend services." },
+      { Icon: SiLangchain, name: "LangChain", color: "#1C3C3C", desc: "Framework for LLM chains, tools and RAG." },
+      { Icon: SiLanggraph, name: "LangGraph", color: "#1C3C3C", desc: "Stateful, graph-based agent workflows." },
+      { Icon: mono("Li"), name: "LlamaIndex", color: "#7C3AED", desc: "Data framework for indexing and retrieval." },
+      { Icon: mono("C"), name: "Chroma", color: "#F97316", desc: "Open-source vector database." },
+      { Icon: mono("F"), name: "FAISS", color: "#0467DF", desc: "Vector similarity search library." },
+      { Icon: mono("pg"), name: "pgvector", color: "#336791", desc: "Vector search inside PostgreSQL." },
+      { Icon: mono("G"), name: "Groq", color: "#F55036", desc: "Low-latency LLM inference API." },
+      { Icon: SiOllama, name: "Ollama", color: "#111827", desc: "Run open LLMs locally and self-hosted." },
+      { Icon: mono("R"), name: "RAGAS", color: "#6366F1", desc: "RAG evaluation: faithfulness and relevancy." },
+      { Icon: SiMlflow, name: "MLflow", color: "#0194E2", desc: "Experiment tracking and model registry." },
+      { Icon: mono("Lf"), name: "Langfuse", color: "#0F172A", desc: "LLM tracing and observability." },
+    ],
+  },
+  {
+    id: "frontend",
+    title: "Frontend & UI/UX Engineering",
+    icon: MonitorSmartphone,
+    caps: ["Component Architecture", "State Management", "Responsive UX", "Performance", "Interactive Design", "Motion & Micro-interactions"],
+    tech: [
+      { Icon: SiReact, name: "React", color: "#61DAFB", desc: "Component-based UI library (React + Vite)." },
       { Icon: SiNextdotjs, name: "Next.js", color: "#111827", desc: "React framework for SSR and routing." },
       { Icon: SiTypescript, name: "TypeScript", color: "#3178C6", desc: "Typed JavaScript for safer code." },
+      { Icon: SiRedux, name: "Redux", color: "#764ABC", desc: "Predictable global state management." },
       { Icon: SiTailwindcss, name: "Tailwind", color: "#06B6D4", desc: "Utility-first CSS framework." },
+      { Icon: SiFramer, name: "Framer Motion", color: "#0055FF", desc: "Declarative React animations." },
+      { Icon: SiChartdotjs, name: "Chart.js", color: "#FF6384", desc: "Canvas-based charts and graphs." },
+      { Icon: SiLottiefiles, name: "Lottie", color: "#00DDB3", desc: "JSON-based vector animations." },
     ],
   },
   {
     id: "backend",
     title: "Backend Engineering",
     icon: Server,
-    caps: ["REST APIs", "Auth & RBAC", "Business Logic", "Integrations"],
+    caps: ["REST APIs", "Microservices", "API Gateway", "Auth (JWT) & RBAC", "Business Logic", "Integrations"],
     tech: [
       { Icon: SiNodedotjs, name: "Node.js", color: "#339933", desc: "JavaScript server runtime." },
       { Icon: SiExpress, name: "Express", color: "#111827", desc: "Minimal Node.js web framework." },
+      { Icon: SiPython, name: "Python", color: "#3776AB", desc: "Backend services and AI pipelines." },
+      { Icon: SiFastapi, name: "FastAPI", color: "#009688", desc: "Async Python API framework." },
+      { Icon: SiDjango, name: "Django", color: "#092E20", desc: "Python web framework, with Django REST Framework." },
+      { Icon: SiJsonwebtokens, name: "JWT", color: "#EC4899", desc: "Token-based authentication." },
     ],
   },
   {
     id: "data",
     title: "Data & Persistence",
     icon: Database,
-    caps: ["Schema Design", "Relationships", "Query Optimization", "Aggregations"],
+    caps: ["Schema Design", "Data Modelling", "Query Optimization", "Aggregations", "Caching"],
     tech: [
-      { Icon: SiPostgresql, name: "PostgreSQL", color: "#4169E1", desc: "Relational SQL database." },
-      { Icon: Database, name: "SQL Server", color: "#CC2927", desc: "Microsoft relational database." },
       { Icon: SiMongodb, name: "MongoDB", color: "#47A248", desc: "Document database for flexible schemas." },
+      { Icon: SiMysql, name: "MySQL", color: "#4479A1", desc: "Relational SQL database." },
+      { Icon: SiPostgresql, name: "PostgreSQL", color: "#4169E1", desc: "Relational SQL database." },
+      { Icon: SiSqlite, name: "SQLite", color: "#003B57", desc: "Embedded SQL database." },
+      { Icon: Database, name: "SQL Server", color: "#CC2927", desc: "Microsoft relational database." },
       { Icon: SiFirebase, name: "Firestore", color: "#FFA000", desc: "Firebase realtime document store." },
       { Icon: SiRedis, name: "Redis", color: "#DC382D", desc: "In-memory caching and data store." },
       { Icon: BullMqIcon, name: "BullMQ", color: "#E11D48", desc: "Redis-backed job and message queue." },
+      { Icon: mono("RQ"), name: "RQ", color: "#DC382D", desc: "Redis Queue for Python background jobs." },
       { Icon: SiFirebase, name: "Firebase Storage", color: "#F59E0B", desc: "Cloud object storage for files." },
     ],
   },
@@ -135,30 +202,36 @@ const DOMAINS: Domain[] = [
     id: "realtime",
     title: "Realtime Systems",
     icon: Zap,
-    caps: ["Sockets", "Event-Driven", "Live Updates", "Multi-User Sync"],
+    caps: ["Sockets", "Event-Driven", "Live Updates", "Multi-User Sync", "Video Calls"],
     tech: [
       { Icon: SiSocketdotio, name: "Socket.IO", color: "#111827", desc: "Realtime bidirectional events." },
+      { Icon: Radio, name: "WebSockets", color: "#6366F1", desc: "Persistent two-way connections." },
+      { Icon: SiAgora, name: "Agora", color: "#099DFD", desc: "Realtime voice and video SDK." },
     ],
   },
   {
     id: "cloud",
-    title: "Cloud & Deployment",
+    title: "Cloud & DevOps",
     icon: Cloud,
-    caps: ["CI/CD", "Env Management", "Monitoring", "Production Deploys"],
+    caps: ["CI/CD", "Containers & Orchestration", "Env Management", "Monitoring", "Production Deploys"],
     tech: [
+      { Icon: FaAws, name: "AWS", color: "#FF9900", desc: "EC2, VPC, S3, CloudFront, RDS, DynamoDB, Lambda, SQS, SNS." },
       { Icon: SiDocker, name: "Docker", color: "#2496ED", desc: "Containerized app packaging." },
+      { Icon: SiKubernetes, name: "Kubernetes", color: "#326CE5", desc: "Container orchestration." },
+      { Icon: SiHelm, name: "Helm", color: "#0F1689", desc: "Kubernetes charts, with HPA and health probes." },
+      { Icon: SiGithubactions, name: "GitHub Actions", color: "#2088FF", desc: "CI/CD automation." },
+      { Icon: SiGooglecloud, name: "GCP", color: "#4285F4", desc: "Google Cloud Platform services." },
+      { Icon: SiDigitalocean, name: "DigitalOcean", color: "#0080FF", desc: "Cloud servers and infrastructure." },
       { Icon: SiVercel, name: "Vercel", color: "#111827", desc: "Frontend hosting and deploys." },
       { Icon: SiNetlify, name: "Netlify", color: "#00C7B7", desc: "Static site hosting and CI." },
-      { Icon: SiDigitalocean, name: "DigitalOcean", color: "#0080FF", desc: "Cloud servers and infrastructure." },
       { Icon: SiFirebase, name: "Firebase", color: "#FFA000", desc: "App platform with auth, hosting and data." },
-      { Icon: SiGooglecloud, name: "GCP", color: "#4285F4", desc: "Google Cloud Platform services." },
     ],
   },
   {
     id: "system",
     title: "System Design",
     icon: Network,
-    caps: ["Caching", "Load Balancing", "Partitioning", "Replication", "Rate Limiting", "Queues"],
+    caps: ["HLD & LLD", "OOP & SOLID", "Service Decomposition", "Distributed Locking", "Caching", "Load Balancing", "Partitioning", "Replication", "Rate Limiting", "Queues"],
   },
   {
     id: "performance",
@@ -167,21 +240,10 @@ const DOMAINS: Domain[] = [
     caps: ["API Optimization", "Code Splitting", "Lazy Loading", "React Memoization", "Virtualization", "Bundle Optimization"],
   },
   {
-    id: "uiux",
-    title: "UI / UX Engineering",
-    icon: Wand2,
-    caps: ["Workflow → Interface", "Interactive Design", "Motion", "Micro-interactions", "Responsive Design", "Visual Storytelling"],
-    tech: [
-      { Icon: SiFramer, name: "Framer Motion", color: "#0055FF", desc: "Declarative React animations." },
-      { Icon: SiChartdotjs, name: "Chart.js", color: "#FF6384", desc: "Canvas-based charts and graphs." },
-      { Icon: SiLottiefiles, name: "Lottie", color: "#00DDB3", desc: "JSON-based vector animations." },
-    ],
-  },
-  {
     id: "workflow",
     title: "Developer Workflow",
     icon: GitBranch,
-    caps: ["Version Control", "Debugging", "Env Config", "Production Fixes"],
+    caps: ["Version Control", "Debugging", "Env Config", "Production Fixes", "AI-Assisted Development"],
     tech: [
       { Icon: SiGit, name: "Git", color: "#F05032", desc: "Version control." },
       { Icon: SiGithubactions, name: "GitHub Actions", color: "#2088FF", desc: "CI/CD automation." },
@@ -191,6 +253,8 @@ const DOMAINS: Domain[] = [
 
 const BUILDS = [
   "Full-Stack Apps",
+  "RAG Systems",
+  "AI Agents",
   "SaaS Products",
   "Admin Dashboards",
   "Realtime Systems",
@@ -268,7 +332,7 @@ export default function EngineeringCapabilities() {
             Engineering Capabilities
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-slate-500">
-            Full-Stack Product Engineer — turning requirements into scalable,
+            Full-Stack AI Engineer — turning requirements into scalable,
             production-ready systems.
           </p>
         </motion.div>

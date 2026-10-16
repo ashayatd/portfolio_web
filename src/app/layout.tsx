@@ -26,9 +26,25 @@ const inter = Inter({
 
 // Use inter.variable in your HTML className
 
+const SITE_TITLE = "Ashay Tamrakar — Full-Stack AI Engineer";
+const SITE_DESCRIPTION =
+  "Full-Stack AI Engineer with 3+ years owning products end to end — full-stack depth in Node.js and Next.js, now building RAG and agentic AI systems in Python.";
+
 export const metadata: Metadata = {
-  title: "Portfolio",
-  description: "Ashay Tamrakar — Full Stack Developer",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: "https://portfolio-web-steel-eta.vercel.app",
+    siteName: "Ashay Tamrakar",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
   // No `icons` override — `src/app/favicon.ico` is picked up by Next's file
   // convention. Re-add it once /public/assets/ATLOGO.png actually exists.
 };
