@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import ResumeDownloadButton from "@/components/resume/ResumeDownloadButton";
 import {
   ArrowRight,
   Download,
@@ -12,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { CityCanvas } from "./simpleWorld/CityCanvas";
-import { getExperience, PROJECT_COUNT } from "@/lib/profile";
+import { getExperience } from "@/lib/profile";
 import { useSmoothScroll } from "@/providers/SmoothScrollProvider";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { subscribeCell, type CellInfo } from "./simpleWorld/DebugGrid";
@@ -27,6 +28,20 @@ import {
   SiTypescript,
 } from "react-icons/si";
 import { FaAws } from "react-icons/fa";
+
+// ─── Stack pills ────────────────────────────────────────────────────
+const STACK = [
+  "Node.js",
+  "Express",
+  "Next.js",
+  "TypeScript",
+  "MongoDB",
+  "MySQL",
+  "Redis",
+  "BullMQ",
+  "Socket.IO",
+  "Docker",
+];
 
 // ─── Proximity prompt ───────────────────────────────────────────────
 // Walking up to a landmark is how you open a section at street level: the
@@ -184,10 +199,10 @@ export function Hero() {
             It's the only flex child, so it has nothing to stack against. */}
         <div className="w-full lg:w-[50%] flex flex-col gap-6 sm:gap-8">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 w-fit">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-slate-600 text-xs font-semibold uppercase tracking-wider">
-              Full Stack Engineer
+          <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 w-fit max-w-full">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+            <span className="text-slate-600 text-[10px] sm:text-xs font-semibold uppercase tracking-wide sm:tracking-wider">
+              Full Stack Engineer · 3 Yrs · Node.js + Next.js
             </span>
           </div>
 
@@ -199,12 +214,30 @@ export function Hero() {
             </span>
           </h1>
 
+          {/* Stack line — the at-a-glance "what I do" signal */}
+          <p className="text-indigo-600 font-semibold text-sm sm:text-base tracking-tight">
+            Full Stack · Next.js · Node.js · SQL &amp; NoSQL — and everything in
+            between.
+          </p>
+
           {/* Subtitle */}
           <p className="text-slate-500 text-base sm:text-lg leading-relaxed max-w-lg">
-            I build end-to-end products with clean code, modern technologies and
-            scalable architecture. From intuitive interfaces to robust backend
-            systems.
+            I ship production products end-to-end — 8 client apps where I owned
+            the backend, the admin panel and the deployment. Cut a hotel search
+            API from 90s to 300ms and replaced a monolith with 6 microservices.
           </p>
+
+          {/* Stack pills */}
+          <div className="flex flex-wrap gap-2 max-w-lg">
+            {STACK.map((tech) => (
+              <span
+                key={tech}
+                className="text-xs text-slate-400 bg-slate-50 border border-slate-100 rounded-full px-2.5 py-1"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
@@ -212,10 +245,13 @@ export function Hero() {
               View My Projects
               <ArrowRight size={16} />
             </button>
-            <button className="flex items-center justify-center cursor-pointer gap-2 bg-white hover:bg-slate-50 text-slate-700 px-6 py-3 rounded-xl text-sm font-semibold border border-slate-200 transition-colors">
+            <ResumeDownloadButton
+              source="hero"
+              className="flex items-center justify-center cursor-pointer gap-2 bg-white hover:bg-slate-50 text-slate-700 px-6 py-3 rounded-xl text-sm font-semibold border border-slate-200 transition-colors"
+            >
               Download Resume
               <Download size={16} />
-            </button>
+            </ResumeDownloadButton>
             {/* Desktop only — walking the city needs WASD + a mouse. */}
             {isDesktop && (
               <button
@@ -248,9 +284,7 @@ export function Hero() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {PROJECT_COUNT}
-                  </p>
+                  <p className="text-lg font-semibold text-gray-900">8</p>
                   <p className="text-sm text-gray-500">Production Projects</p>
                   <p className="text-xs text-gray-400">Built & Deployed</p>
                 </div>
@@ -293,14 +327,16 @@ export function Hero() {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75L12 13.5H3.75z"
                     />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-gray-900">100%</p>
-                  <p className="text-sm text-gray-500">Commitment</p>
-                  <p className="text-xs text-gray-400">To Quality</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    90s → 300ms
+                  </p>
+                  <p className="text-sm text-gray-500">API Optimisation</p>
+                  <p className="text-xs text-gray-400">Search on 10+ table join</p>
                 </div>
               </div>
 
@@ -316,14 +352,14 @@ export function Hero() {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                      d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.933 2.185 2.25 2.25 0 00-3.933-2.185zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
                     />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-gray-900">Always</p>
-                  <p className="text-sm text-gray-500">Learning</p>
-                  <p className="text-xs text-gray-400">Always Building</p>
+                  <p className="text-lg font-semibold text-gray-900">6</p>
+                  <p className="text-sm text-gray-500">Microservices</p>
+                  <p className="text-xs text-gray-400">Split from a monolith</p>
                 </div>
               </div>
             </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import ResumeDownloadButton from "@/components/resume/ResumeDownloadButton";
 import { Download } from "lucide-react";
 import { NAV_ITEMS, useActiveSection } from "@/lib/nav";
 import { useSmoothScroll } from "@/providers/SmoothScrollProvider";
@@ -52,10 +53,13 @@ export function Navbar() {
       </div>
 
       {/* Resume Button */}
-      <button className="hidden md:flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
+      <ResumeDownloadButton
+        source="header"
+        className="hidden md:flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+      >
         Resume
         <Download size={16} />
-      </button>
+      </ResumeDownloadButton>
     </nav>
   );
 }
