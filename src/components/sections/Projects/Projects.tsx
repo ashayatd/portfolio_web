@@ -49,46 +49,204 @@ interface ProjectsData {
 const DATA: ProjectsData = {
   eyebrow: "Selected work",
   title: "Projects",
-  note: "Production systems across real-time billing, social feeds at the data layer, microservices and live video.",
+  note: "RAG and agentic AI systems, a multi-tenant ERP with a self-hosted LLM, plus production microservices, social feeds at the data layer and live video.",
 
-  // ── Featured: Squach (primary project) ──────────────────────────────────
+  // ── Featured: OrbitDesk (RAG + agentic AI) ─────────────────────────────
   featured: {
-    badge: "Full-Stack · Core Modules",
-    pills: ["Primary Project", "Microservices"],
-    title: "Squach",
-    desc: "Super app for accommodation, bus ticketing, mart and dine in/out. I owned the accommodation, ticketing and delivery-partner stack.",
+    badge: "RAG + Agentic AI",
+    pills: ["Personal project"],
+    title: "OrbitDesk",
+    desc: "Enterprise helpdesk copilot: a role-aware RAG copilot with citations and agent actions.",
     points: [
-      "Cut the hotel search and filter API from `~90s` to `~300ms` by replacing a 10+ table query with field projection and pagination.",
-      "Prevented double bookings with a Redis distributed lock and a 20 minute TTL reservation, so inventory releases automatically on an abandoned checkout.",
-      "Re-architected a monolith into 6 microservices behind an API gateway. A refresh-ahead Redis cache on currency rates cut third-party calls by `~95%`.",
+      "Retrieval scores `Recall@5 1.0` and `MRR 0.96`; RAGAS faithfulness `0.91` and answer relevancy `0.86`, at an end-to-end p50 of `~1.5s`.",
+      "Retrieval-time RBAC with `0 leaks` across `1,386` adversarial queries per vector store, plus prompt-injection guardrails.",
+      "A QLoRA-fine-tuned intent router matches few-shot accuracy (`0.91`) offline at zero API cost.",
     ],
-    chips: ["Node.js", "MySQL", "Redis", "BullMQ", "Microservices", "API Gateway"],
-    admin: {
-      label: "Admin dashboard",
-      features: [
-        "User analytics",
-        "Graphs & charts",
-        "Business metrics",
-        "Calculated statistics",
-        "Notification campaigns",
-        "User management",
-        "Content moderation",
-      ],
-    },
+    chips: ["Python", "FastAPI", "LangChain", "LangGraph", "LlamaIndex", "Groq", "Chroma", "FAISS", "pgvector", "Redis", "Docker"],
     links: [],
     details: [
       {
-        label: "Booking workflow",
-        body: "Seven cross-service steps run a booking: search, hold inventory, payment, confirm, notify over email and SMS, then update the vendor dashboard. A TTL index releases inventory automatically if payment fails.",
+        label: "Retrieval",
+        body: "Hybrid BM25 + vector retrieval fused with RRF, then cross-encoder reranking.",
       },
       {
-        label: "Notification campaigns",
-        body: "A BullMQ and Redis queue targets vendors and customers by category across Email, SMS and In-App, with per-recipient success and failure logs surfaced in a dense admin view.",
+        label: "Evals & ops",
+        body: "Semantic cache, with MLflow, Langfuse and RAGAS evals.",
       },
     ],
   },
 
   projects: [
+    // ── Pluto (voice-controlled coding agent) ─────────────────────────────
+    {
+      badge: "Agentic AI · Voice",
+      pills: ["Personal project"],
+      title: "Pluto",
+      desc: "Voice-controlled agentic coding assistant on Alexa: a Node.js orchestrator and a Python/Flask executor driving VS Code, git/npm, dev servers and Claude CLI.",
+      points: [
+        "LLM tool-calling loop over a `9-tool registry`, with per-session memory and SSML responses.",
+        "Groq → Ollama failover behind a circuit breaker, and a `~50%` cut in token usage.",
+        "Sandboxed execution (command allowlist, injection blocking, path confinement, shared-secret service auth), covered by `183 tests`.",
+      ],
+      chips: ["Node.js", "Express", "Python", "Flask", "Groq", "Ollama", "Alexa Skills Kit", "Claude CLI"],
+      details: [
+        {
+          label: "Alexa's 8s limit",
+          body: "Deadline-based async offloading to a background job registry, with cross-session status reporting.",
+        },
+      ],
+    },
+
+    // ── StackJob (multi-tenant ERP + self-hosted LLM) ─────────────────────
+    {
+      badge: "Backend & DevOps Owner",
+      pills: ["CIS", "AI Integration"],
+      title: "StackJob",
+      desc: "Multi-industry ERP and job-costing SaaS, with a self-hosted LLM integrated through an audited gateway.",
+      points: [
+        "Built the multi-tenant Django/DRF backend, with tenant-scoped model managers that make unscoped queries impossible.",
+        "Integrated a self-hosted LLM through a single audited gateway service, running inference on a dedicated Celery queue so AI calls never block the request path.",
+        "Owned the containerised deployment, plus a GitHub Actions pipeline running lint, type and migration checks and tests behind a coverage gate before a rolling deploy.",
+      ],
+      chips: ["Python", "Django", "Django REST Framework", "PostgreSQL", "Celery", "Redis", "Docker", "Nginx", "Ollama"],
+      details: [
+        {
+          label: "API & auth",
+          body: "JWT auth with role-based permission classes, and a versioned REST API with business logic in a service layer rather than in views.",
+        },
+        {
+          label: "LLM gateway",
+          body: "Schema-validated responses, with per-request logging of model version and latency.",
+        },
+        {
+          label: "Runtime",
+          body: "Nginx, Gunicorn/Uvicorn, Celery workers and beat, PostgreSQL, Redis and the model runtime, all containerised.",
+        },
+      ],
+    },
+
+    // ── Squach (super app) ────────────────────────────────────────────────
+    {
+      badge: "Full-Stack · Core Modules",
+      pills: ["Microservices", "Kubernetes"],
+      title: "Squach",
+      desc: "Multi-vertical super app for accommodation, bus booking, food ordering, mart and dine-in. I owned the accommodation, ticketing and delivery-partner stack.",
+      points: [
+        "Cut the hotel search and filter API from `~90s` to `~300ms` by replacing a 10+ table join with field projection and pagination.",
+        "Eliminated double bookings using a Redis distributed lock and a 20-minute TTL reservation, auto-releasing on abandoned checkout.",
+        "Re-architected a monolith into `6` Dockerized microservices on an AWS EC2 Kubernetes cluster behind an API gateway. A Redis cache cut third-party API calls by `~95%`.",
+      ],
+      chips: ["Node.js", "Express", "MySQL", "Redis", "BullMQ", "Microservices", "API Gateway"],
+      admin: {
+        label: "Admin dashboard",
+        features: [
+          "User analytics",
+          "Graphs & charts",
+          "Business metrics",
+          "Calculated statistics",
+          "Notification campaigns",
+          "User management",
+          "Content moderation",
+        ],
+      },
+      links: [],
+      details: [
+        {
+          label: "Kubernetes",
+          body: "Managed rollouts via kubectl, and authored custom Helm charts with HPA and health probes.",
+        },
+        {
+          label: "Booking workflow",
+          body: "Seven cross-service steps run a booking: search, hold inventory, payment, confirm, notify over email and SMS, then update the vendor dashboard. A TTL index releases inventory automatically if payment fails.",
+        },
+        {
+          label: "Notification campaigns",
+          body: "A BullMQ and Redis queue targets vendors and customers by category across Email, SMS and In-App, with per-recipient success and failure logs surfaced in a dense admin view.",
+        },
+      ],
+    },
+
+    // ── Tambez (social platform) ──────────────────────────────────────────
+    {
+      badge: "Backend + Admin Lead",
+      pills: ["Play Store · 100+ installs"],
+      title: "Tambez",
+      desc: "Instagram-style social platform for students with posts, reels, reactions, reposts and a social graph.",
+      points: [
+        "Replaced ~150 N+1 feed queries with a single `8-stage MongoDB aggregation pipeline`, keeping feed latency flat as following-lists grew.",
+        "Modelled a `23-collection` document schema with Redis-cached feeds, chosen over relational to absorb frequent schema changes without migrations.",
+      ],
+      chips: ["Node.js", "MongoDB", "Redis", "React.js"],
+      admin: {
+        label: "Admin dashboard",
+        features: [
+          "User analytics",
+          "User demographics",
+          "Active users",
+          "Location insights",
+          "Individual profiles",
+          "Session duration",
+          "Most liked content",
+          "Most commented content",
+          "Category analytics",
+          "Student uploads",
+          "Issue ticket management",
+          "Ban / unban users",
+          "Ban / unban posts",
+          "Comment moderation",
+          "Achievement approvals",
+          "Badge management (Blue Tick)",
+        ],
+      },
+      details: [
+        {
+          label: "Why aggregation",
+          body: "Pushing joins, filtering and sorting into MongoDB's engine keeps feed latency stable as following-lists grow, instead of looping queries in Node.",
+        },
+        {
+          label: "Infinite scroll",
+          body: "Fixed duplicates by tracking seen-post IDs and excluding them server-side with `$nin`, so the feed stays stable as new posts arrive mid-scroll.",
+        },
+      ],
+    },
+
+    // ── Eyeshare (live video) ─────────────────────────────────────────────
+    {
+      badge: "Backend + Admin Owner",
+      pills: ["Real-time Video"],
+      title: "Eyeshare",
+      desc: "Job marketplace with one-on-one video calls: connects job seekers with providers, plus on-demand expert calls for how-to help and consultations.",
+      points: [
+        "Cut socket payloads by `60–80%` using delta signaling that transmitted only changed fields, directly reducing Agora billing.",
+        "Stopped `paid-minute burn` by socket-coordinating call sessions: streams auto-pause on peer-left and the call closes after a 60-second reconnect window.",
+        "Added a database heartbeat to survive ECONNRESET drops from low-bandwidth users, preventing full session teardown.",
+      ],
+      chips: ["Node.js", "MongoDB", "Agora", "Socket.IO", "React+Vite"],
+      admin: {
+        label: "Admin dashboard",
+        features: [
+          "User analytics",
+          "Active users",
+          "Call session logs",
+          "Revenue tracking",
+          "Job posting analytics",
+          "Expert management",
+          "User management",
+          "Session monitoring",
+        ],
+      },
+      details: [
+        {
+          label: "Reconnect",
+          body: "The server broadcasts peer-left, clients show a waiting-for-peer state, and the call closes at 60s to cap billing.",
+        },
+        {
+          label: "Scope",
+          body: "I took over an existing deployed system, extended it, and re-deployed it with automated builds.",
+        },
+      ],
+    },
+
     // ── Hot Pockets (frontend ownership) ──────────────────────────────────
     {
       badge: "Frontend Owner",
@@ -120,89 +278,6 @@ const DATA: ProjectsData = {
         {
           label: "Frontend scope",
           body: "Real-time table management, canteen and table billing, individual and split player billing for 2 to 4 players, credit management with live reflection on player assignment, and dynamic payment distribution, all in a richly interactive, animated UI.",
-        },
-      ],
-    },
-
-    // ── Tambez (social platform) ──────────────────────────────────────────
-    {
-      badge: "Backend + Admin Lead",
-      pills: ["Play Store · 100+ installs"],
-      title: "Tambez",
-      desc: "Instagram-style social platform for students with posts, reels, reactions, reposts and a social graph.",
-      points: [
-        "Replaced about 150 N+1 feed queries with a single `8-stage MongoDB aggregation pipeline` (match, lookups, unwind, project, sort, limit).",
-        "Fixed infinite-scroll duplicates by tracking seen-post IDs and excluding them server-side with `$nin`, so the feed stays stable as new posts arrive mid-scroll.",
-        "23 collections with Redis-cached feeds for low scroll latency.",
-      ],
-      chips: ["Node.js", "MongoDB", "Redis", "React"],
-      admin: {
-        label: "Admin dashboard",
-        features: [
-          "User analytics",
-          "User demographics",
-          "Active users",
-          "Location insights",
-          "Individual profiles",
-          "Session duration",
-          "Most liked content",
-          "Most commented content",
-          "Category analytics",
-          "Student uploads",
-          "Issue ticket management",
-          "Ban / unban users",
-          "Ban / unban posts",
-          "Comment moderation",
-          "Achievement approvals",
-          "Badge management (Blue Tick)",
-        ],
-      },
-      links: [{ label: "Play Store", href: "#" }],
-      details: [
-        {
-          label: "Why aggregation",
-          body: "Pushing joins, filtering and sorting into MongoDB's engine keeps feed latency stable as following-lists grow, instead of looping queries in Node.",
-        },
-        {
-          label: "Schema",
-          body: "A document model was chosen for a fast-changing feature set the client kept reshaping.",
-        },
-      ],
-    },
-
-    // ── Eyeshare (live video) ─────────────────────────────────────────────
-    {
-      badge: "Backend + Admin Owner",
-      pills: ["Real-time Video"],
-      title: "Eyeshare",
-      desc: "Connects job seekers with providers, plus on-demand expert video calls for how-to help and consultations.",
-      points: [
-        "Socket-coordinated Agora calls: on peer-left, the stream auto-pauses and the call ends after 60s of no reconnect to `stop paid-minute burn`.",
-        "Cut socket payloads `60 to 80%` with delta signaling (only changed fields), which directly lowered Agora billing.",
-        "Added a DB heartbeat to survive ECONNRESET drops from low-bandwidth users.",
-      ],
-      chips: ["Node.js", "MongoDB", "Agora", "WebSockets", "React"],
-      admin: {
-        label: "Admin dashboard",
-        features: [
-          "User analytics",
-          "Active users",
-          "Call session logs",
-          "Revenue tracking",
-          "Job posting analytics",
-          "Expert management",
-          "User management",
-          "Session monitoring",
-        ],
-      },
-      details: [
-        {
-          label: "Reconnect",
-          body: "The server broadcasts peer-left, clients show a waiting-for-peer state, and the call closes at 60s to cap billing.",
-        },
-        {
-          label: "Scope",
-          body: "I took over an existing deployed system, extended it, and re-deployed it with automated builds.",
         },
       ],
     },

@@ -38,13 +38,13 @@ export const ZONES: Zone[] = [
     z: -21,
     radius: 9,
     accent: "#8B5CF6",
-    subtitle: "Full-stack engineering, 2023 — present",
+    subtitle: "Full-stack + AI engineering, 2023 — present",
     body: [
-      "Two years building and shipping production",
-      "systems on the MERN stack — REST APIs,",
-      "backend services and the interfaces on top.",
+      "3+ years at Cyber Infrastructure, from React interfaces to",
+      "owning products end to end — architecture, deployment, and",
+      "now AI integration.",
     ],
-    tags: ["2+ Years", "MERN Stack", "Backend", "REST APIs"],
+    tags: ["3+ Years", "Software Developer", "Full-Stack + AI", "End to End"],
     boardPos: [0, -14],
   },
   {
@@ -56,11 +56,10 @@ export const ZONES: Zone[] = [
     accent: "#5A8A5A",
     subtitle: "The tools behind the work",
     body: [
-      "Frontend, backend and DevOps — React and",
-      "Next.js through Node, MongoDB and Docker,",
-      "deployed and maintained end to end.",
+      "Full-stack web, GenAI and cloud: RAG pipelines, agent",
+      "workflows, microservices, Docker and Kubernetes on AWS.",
     ],
-    tags: ["Frontend", "Backend", "DevOps", "Docker"],
+    tags: ["Full-Stack", "GenAI", "Cloud", "DevOps"],
     boardPos: [0, 14],
   },
   {
@@ -70,13 +69,13 @@ export const ZONES: Zone[] = [
     z: 0,
     radius: 9,
     accent: "#69b9fa",
-    subtitle: "Seven shipped, and counting",
+    subtitle: "Eight shipped, and counting",
     body: [
-      "Production web applications built full-stack,",
-      "from first schema to live deployment —",
-      "each one running for real users.",
+      "8 production products shipped. Highlights: a search API cut",
+      "from 90s to 300ms, a RAG copilot with 0 leaks across 1,386",
+      "adversarial queries, and a voice-controlled coding agent.",
     ],
-    tags: ["7+ Shipped", "Production", "Full-Stack", "Web Apps"],
+    tags: ["8 Shipped", "90s → 300ms", "RAG Copilot", "Voice Agent"],
     boardPos: [-14, 0],
   },
   {
@@ -88,11 +87,11 @@ export const ZONES: Zone[] = [
     accent: "#f4a261",
     subtitle: "What I reach for first",
     body: [
-      "React · Next.js · Node.js · Express",
-      "MongoDB · Redis · Docker · AWS",
-      "TypeScript across the whole stack.",
+      "Node.js, Next.js and TypeScript for products; Python, FastAPI,",
+      "LangChain and LangGraph for AI. Redis, PostgreSQL and",
+      "MongoDB underneath.",
     ],
-    tags: ["React", "Next.js", "Node.js", "MongoDB", "Docker", "AWS"],
+    tags: ["Node.js", "Next.js", "Python", "LangGraph"],
     boardPos: [14, 0],
   },
   {
@@ -104,13 +103,13 @@ export const ZONES: Zone[] = [
     z: 0,
     radius: 6,
     accent: "#5b9bd5",
-    subtitle: "Ashay Tamrakar — Full Stack Developer",
+    subtitle: "Ashay Tamrakar — Full-Stack AI Engineer",
     body: [
       "The monument at the centre of the campus.",
       "Everything around you is one part of the",
       "same portfolio — start anywhere.",
     ],
-    tags: ["Full Stack", "Product-minded", "Always Learning"],
+    tags: ["Full-Stack + AI", "Product-minded", "Always Learning"],
   },
 ];
 
@@ -136,14 +135,16 @@ export function nearestZone(x: number, z: number): Zone | null {
 // re-render the whole 3D tree.
 
 type Listener = (zone: Zone | null) => void;
-let listener: Listener | null = null;
+// Several subscribers: the on-screen prompt, plus each building's billboard
+// (which fades out while you stand in its zone).
+const listeners = new Set<Listener>();
 let current: Zone | null = null;
 
 export function subscribeNearby(fn: Listener) {
-  listener = fn;
+  listeners.add(fn);
   fn(current);
   return () => {
-    if (listener === fn) listener = null;
+    listeners.delete(fn);
   };
 }
 
@@ -151,11 +152,11 @@ export function subscribeNearby(fn: Listener) {
 export function publishNearby(zone: Zone | null) {
   if (zone?.id === current?.id) return;
   current = zone;
-  listener?.(zone);
+  listeners.forEach((fn) => fn(zone));
 }
 
 /** Clears state when leaving the city, so a stale prompt can't reappear. */
 export function resetNearby() {
   current = null;
-  listener?.(null);
+  listeners.forEach((fn) => fn(null));
 }

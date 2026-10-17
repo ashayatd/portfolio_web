@@ -35,9 +35,20 @@ import {
   SiClaude,
   SiGooglegemini,
   SiGithubcopilot,
+  SiPython,
+  SiFastapi,
+  SiDjango,
+  SiLangchain,
+  SiLanggraph,
+  SiOllama,
+  SiMlflow,
+  SiKubernetes,
+  SiHelm,
+  SiSqlite,
 } from "react-icons/si";
 
 import { FaCube } from "react-icons/fa6";
+import { FaAws } from "react-icons/fa";
 import type { IconType } from "react-icons";
 
 // BullMQ custom icon
@@ -50,11 +61,37 @@ const BullMqIcon = ({ className }: { className?: string }) => (
   />
 );
 
+// Tools with no brand icon in the set — monogram tile, same fallback as the
+// AI Tools row below.
+const mono = (letters: string) =>
+  function Monogram({
+    className,
+    style,
+  }: {
+    className?: string;
+    style?: React.CSSProperties;
+  }) {
+    return (
+      <span
+        className={`${className ?? ""} flex items-center justify-center text-base font-bold leading-none`}
+        style={style}
+      >
+        {letters}
+      </span>
+    );
+  };
+
 interface Tech {
   name: string;
   Icon:
     | IconType
-    | (({ className }: { className?: string }) => React.JSX.Element);
+    | (({
+        className,
+        style,
+      }: {
+        className?: string;
+        style?: React.CSSProperties;
+      }) => React.JSX.Element);
   /** Brand colour — drives the icon tint and the hover glow. */
   color: string;
   /** Official docs / homepage — opens on click. */
@@ -72,6 +109,20 @@ const techStack: Tech[] = [
   { name: "Three.js",       Icon: SiThreedotjs,      color: "#111827", href: "https://threejs.org" },
   { name: "Node.js",        Icon: SiNodedotjs,       color: "#339933", href: "https://nodejs.org" },
   { name: "Express",        Icon: SiExpress,         color: "#111827", href: "https://expressjs.com" },
+  { name: "Python",         Icon: SiPython,          color: "#3776AB", href: "https://www.python.org" },
+  { name: "FastAPI",        Icon: SiFastapi,         color: "#009688", href: "https://fastapi.tiangolo.com" },
+  { name: "Django",         Icon: SiDjango,          color: "#092E20", href: "https://www.djangoproject.com" },
+  { name: "LangChain",      Icon: SiLangchain,       color: "#1C3C3C", href: "https://www.langchain.com" },
+  { name: "LangGraph",      Icon: SiLanggraph,       color: "#1C3C3C", href: "https://www.langchain.com/langgraph" },
+  { name: "LlamaIndex",     Icon: mono("Li"),        color: "#7C3AED", href: "https://www.llamaindex.ai" },
+  { name: "Chroma",         Icon: mono("C"),         color: "#F97316", href: "https://www.trychroma.com" },
+  { name: "FAISS",          Icon: mono("F"),         color: "#0467DF", href: "https://github.com/facebookresearch/faiss" },
+  { name: "pgvector",       Icon: mono("pg"),        color: "#336791", href: "https://github.com/pgvector/pgvector" },
+  { name: "Groq",           Icon: mono("G"),         color: "#F55036", href: "https://groq.com" },
+  { name: "Ollama",         Icon: SiOllama,          color: "#111827", href: "https://ollama.com" },
+  { name: "RAGAS",          Icon: mono("R"),         color: "#6366F1", href: "https://docs.ragas.io" },
+  { name: "MLflow",         Icon: SiMlflow,          color: "#0194E2", href: "https://mlflow.org" },
+  { name: "Langfuse",       Icon: mono("Lf"),        color: "#0F172A", href: "https://langfuse.com" },
   { name: "MongoDB",        Icon: SiMongodb,         color: "#47A248", href: "https://www.mongodb.com" },
   { name: "Redis",          Icon: SiRedis,           color: "#DC382D", href: "https://redis.io" },
   { name: "Socket.IO",      Icon: SiSocketdotio,     color: "#1f2937", href: "https://socket.io" },
@@ -86,10 +137,14 @@ const techStack: Tech[] = [
   { name: "GitHub Actions", Icon: SiGithubactions,   color: "#2088FF", href: "https://github.com/features/actions" },
   { name: "MySQL",          Icon: SiMysql,           color: "#4479A1", href: "https://www.mysql.com" },
   { name: "Postgres",       Icon: SiPostgresql,      color: "#336791", href: "https://www.postgresql.org" },
+  { name: "SQLite",         Icon: SiSqlite,          color: "#003B57", href: "https://www.sqlite.org" },
   { name: "GCP",            Icon: SiGooglecloud,     color: "#4285F4", href: "https://cloud.google.com" },
   { name: "Firebase",       Icon: SiFirebase,        color: "#F59E0B", href: "https://firebase.google.com" },
   { name: "Stripe",         Icon: SiStripe,          color: "#635BFF", href: "https://stripe.com" },
   { name: "Docker",         Icon: SiDocker,          color: "#2496ED", href: "https://www.docker.com" },
+  { name: "Kubernetes",     Icon: SiKubernetes,      color: "#326CE5", href: "https://kubernetes.io" },
+  { name: "Helm",           Icon: SiHelm,            color: "#0F1689", href: "https://helm.sh" },
+  { name: "AWS",            Icon: FaAws,             color: "#FF9900", href: "https://aws.amazon.com" },
   { name: "draw.io",        Icon: SiDiagramsdotnet,  color: "#F08705", href: "https://app.diagrams.net" },
   { name: "JWT",            Icon: SiJsonwebtokens,   color: "#EC4899", href: "https://jwt.io" },
 ];
@@ -112,6 +167,7 @@ const AI_TOOLS: AiTool[] = [
   { name: "Gemini",         Icon: SiGooglegemini,  color: "#4285F4", role: "Multimodal research",    href: "https://gemini.google.com" },
   { name: "GitHub Copilot", Icon: SiGithubcopilot, color: "#24292F", role: "In-editor completion",   href: "https://github.com/features/copilot" },
   { name: "Cursor",         Icon: FaCube ,             color: "#09141a", role: "AI-powered editor",      href: "https://www.cursor.com" },
+  { name: "Antigravity",    mono: "A",             color: "#4285F4", role: "Agentic IDE",            href: "https://antigravity.google" },
   { name: "KIMI",           mono: "K",             color: "#111827", role: "Long-context reading",   href: "https://kimi.ai" },
   { name: "QWEN",           mono: "Q",             color: "#615CED", role: "Model comparison",       href: "https://chat.qwen.ai" },
 ];

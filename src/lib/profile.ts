@@ -4,8 +4,8 @@
 /** First day at CIS. */
 export const JOIN_DATE = new Date(2023, 9, 5); // 5 October 2023 (month is 0-indexed)
 
-/** Production projects shipped (kept as a "N+" style claim). */
-export const PROJECT_COUNT = "7+";
+/** Production client products shipped (matches the resume). */
+export const PROJECT_COUNT = "8";
 
 export interface Experience {
   years: number;
